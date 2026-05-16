@@ -1,0 +1,27 @@
+Julio Demo SOC
+julio.demo@example.com | +34 600 000 000 | linkedin.com/in/juliodemo | github.com/juliodemo
+
+Perfil profesional
+Analista SOC junior con experiencia en monitorización de alertas, revisión de eventos de seguridad y documentación de procedimientos. Interés en detección de amenazas, SIEM y respuesta a incidentes.
+
+Competencias técnicas
+Microsoft Sentinel, Splunk, Elastic, Defender, CrowdStrike, Windows, Linux, MITRE ATT&CK, phishing analysis, log analysis, KQL, Excel.
+
+Experiencia laboral
+SOC Analyst Intern - SecureOps Demo | 2025 - Actualidad
+- Monitorización de alertas en SIEM.
+- Análisis de correos sospechosos y escalado de incidentes.
+- Documentación de playbooks y procedimientos para el equipo N1.
+- Reducción de falsos positivos mediante revisión de reglas.
+
+Educación
+Grado en Ingeniería Informática - Universidad Demo | 2021 - 2025
+
+Certificaciones
+Microsoft SC-900 | Introduction to Cybersecurity
+
+Proyectos
+Controlled File Encryption Lab - Simulación segura de cifrado de archivos para evaluar telemetría endpoint.
+
+Idiomas
+Español nativo, inglés B2

@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Static ATS CV and LinkedIn optimizer for cybersecurity and general professional roles." />
+  <title>CV/LinkedIn Cybersecurity Optimizer</title>
+  <link rel="stylesheet" href="assets/styles.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <p class="eyebrow">CV / LinkedIn Optimizer</p>
+      <h1 data-i18n="appTitle">CV/LinkedIn Cybersecurity Optimizer</h1>
+      <p class="subtitle" data-i18n="appSubtitle">Analiza tu CV, compara una oferta, mejora bullets y exporta un CV profesional en PDF o DOCX.</p>
+    </div>
+    <div class="header-actions" aria-label="Language and theme controls">
+      <div class="lang-switch" role="group" aria-label="Language selector">
+        <button type="button" id="lang-en" class="ghost">EN</button>
+        <span>/</span>
+        <button type="button" id="lang-es" class="ghost active">ES</button>
+      </div>
+      <button type="button" id="theme-toggle" class="icon-btn" aria-label="Toggle dark mode">◐</button>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="notice privacy-card">
+      <strong data-i18n="privacyTitle">Privacidad</strong>
+      <span data-i18n="privacyText">Los archivos se procesan localmente en tu navegador. En GitHub Pages no hay backend. Si activas IA externa con tu propia API key, el texto se enviará al proveedor configurado y la clave no se guarda.</span>
+    </section>
+
+    <section class="steps" aria-label="Workflow steps">
+      <span data-i18n="step1">1. CV</span>
+      <span data-i18n="step2">2. Oferta</span>
+      <span data-i18n="step3">3. Rol</span>
+      <span data-i18n="step4">4. Análisis</span>
+      <span data-i18n="step5">5. Formato</span>
+      <span data-i18n="step6">6. Edición</span>
+      <span data-i18n="step7">7. Exportar</span>
+      <span data-i18n="step8">8. Sueldo</span>
+    </section>
+
+    <div class="grid two-cols">
+      <section class="card">
+        <div class="card-heading">
+          <h2 data-i18n="uploadCvTitle">1. Subir o pegar CV</h2>
+          <button type="button" id="load-demo" class="secondary" data-i18n="loadExample">Cargar ejemplo</button>
+        </div>
+        <label class="file-label" for="cv-file">
+          <span data-i18n="cvFileLabel">Archivo CV (PDF, DOCX, TXT, MD, JSON)</span>
+          <input id="cv-file" type="file" accept=".pdf,.docx,.txt,.md,.json,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,application/json" />
+        </label>
+        <label for="manual-cv" data-i18n="manualCvLabel">Contenido del CV</label>
+        <textarea id="manual-cv" rows="14" placeholder="Pega aquí tu CV si no subes archivo..."></textarea>
+        <div class="button-row">
+          <button type="button" id="parse-cv" class="primary" data-i18n="parseCv">Interpretar CV</button>
+          <button type="button" id="clear-all" class="danger" data-i18n="clearAll">Limpiar</button>
+        </div>
+        <p id="cv-status" class="status" role="status"></p>
+      </section>
+
+      <section class="card">
+        <h2 data-i18n="jdTitle">2. Oferta de trabajo</h2>
+        <label class="file-label" for="jd-file">
+          <span data-i18n="jdFileLabel">Subir oferta (.txt)</span>
+          <input id="jd-file" type="file" accept=".txt,.md,text/plain" />
+        </label>
+        <label for="job-description" data-i18n="jdPasteLabel">Pegar job description</label>
+        <textarea id="job-description" rows="14" placeholder="Pega aquí la oferta o requisitos del puesto..."></textarea>
+        <div class="button-row">
+          <button type="button" id="sample-jd" class="secondary" data-i18n="sampleJd">Usar oferta demo</button>
+        </div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2 data-i18n="profileTargetTitle">3. Rol, destino, idioma y foto</h2>
+      <div class="grid three-cols">
+        <div>
+          <label for="destination" data-i18n="destinationLabel">Destino</label>
+          <select id="destination">
+            <option value="spain">España</option>
+            <option value="uk-ie">UK / Irlanda</option>
+            <option value="europe">Europa</option>
+            <option value="academic">Académico</option>
+            <option value="international-ats">ATS internacional</option>
+          </select>
+        </div>
+        <div>
+          <label for="output-language" data-i18n="outputLanguageLabel">Idioma del CV final</label>
+          <select id="output-language">
+            <option value="es">Español</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+        <div>
+          <label for="custom-role" data-i18n="customRoleLabel">Rol objetivo libre</label>
+          <input id="custom-role" type="text" placeholder="Ej.: Process Engineer, Data Analyst, Teacher..." />
+        </div>
+      </div>
+
+      <fieldset class="role-fieldset">
+        <legend data-i18n="rolesLegend">Roles objetivo</legend>
+        <div id="role-options" class="pill-grid"></div>
+      </fieldset>
+
+      <div class="grid two-cols photo-grid">
+        <div>
+          <label class="file-label" for="photo-file">
+            <span data-i18n="photoLabel">Foto de perfil opcional</span>
+            <input id="photo-file" type="file" accept="image/*" />
+          </label>
+          <label class="checkbox-line"><input id="include-photo" type="checkbox" /> <span data-i18n="includePhoto">Incluir foto en el CV generado</span></label>
+          <p id="photo-warning" class="hint"></p>
+        </div>
+        <div id="photo-preview" class="photo-preview" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-heading">
+        <h2 data-i18n="structuredPreviewTitle">4. Vista estructurada editable</h2>
+        <button type="button" id="save-fields" class="secondary" data-i18n="saveFields">Aplicar cambios</button>
+      </div>
+      <div id="structured-fields" class="structured-fields"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-heading">
+        <h2 data-i18n="analysisTitle">5. Análisis ATS y recomendaciones</h2>
+        <div class="button-row compact">
+          <button type="button" id="analyze" class="primary" data-i18n="analyzeBtn">Analizar compatibilidad</button>
+          <button type="button" id="recommend-format" class="secondary" data-i18n="recommendFormat">Recomendar formato</button>
+        </div>
+      </div>
+      <div id="analysis-output" class="analysis-output empty" data-i18n="analysisPlaceholder">Aún no hay análisis. Interpreta el CV y pulsa analizar.</div>
+    </section>
+
+
+
+    <section class="card salary-card">
+      <div class="card-heading">
+        <div>
+          <h2 data-i18n="salaryTitle">Calculadora salarial global</h2>
+          <p class="hint" data-i18n="salaryIntro">Estimación orientativa en dos niveles: mercado base para países soportados y modo asistido con rango local para cualquier país.</p>
+        </div>
+        <div class="button-row compact">
+          <button type="button" id="salary-from-cv" class="secondary" data-i18n="salaryFromCv">Detectar desde CV</button>
+          <button type="button" id="calculate-salary" class="primary" data-i18n="calculateSalary">Calcular rango</button>
+        </div>
+      </div>
+
+      <div class="salary-mode-note">
+        <div><strong data-i18n="salaryLevel1Title">Nivel 1</strong><span data-i18n="salaryLevel1Text"> Usa rangos base internos para mercados principales.</span></div>
+        <div><strong data-i18n="salaryLevel2Title">Nivel 2</strong><span data-i18n="salaryLevel2Text"> Para cualquier país: introduce un rango visto en ofertas locales y la app lo ajusta según tu CV.</span></div>
+      </div>
+
+      <div class="grid four-cols">
+        <div>
+          <label for="salary-country" data-i18n="salaryCountryLabel">País objetivo</label>
+          <select id="salary-country"></select>
+        </div>
+        <div>
+          <label for="salary-currency" data-i18n="salaryCurrencyLabel">Moneda</label>
+          <select id="salary-currency"></select>
+        </div>
+        <div>
+          <label for="salary-period" data-i18n="salaryPeriodLabel">Periodo</label>
+          <select id="salary-period">
+            <option value="annual" data-i18n="salaryAnnual">Bruto anual</option>
+            <option value="monthly" data-i18n="salaryMonthly">Bruto mensual</option>
+          </select>
+        </div>
+        <div>
+          <label for="salary-mode" data-i18n="salaryModeLabel">Modo de cálculo</label>
+          <select id="salary-mode">
+            <option value="baseline" data-i18n="salaryModeBaseline">Automático con mercado base</option>
+            <option value="assisted" data-i18n="salaryModeAssisted">Asistido con rango local</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid four-cols">
+        <div>
+          <label for="salary-role" data-i18n="salaryRoleLabel">Familia de rol</label>
+          <select id="salary-role"></select>
+        </div>
+        <div>
+          <label for="salary-seniority" data-i18n="salarySeniorityLabel">Seniority</label>
+          <select id="salary-seniority"></select>
+        </div>
+        <div>
+          <label for="salary-experience" data-i18n="salaryExperienceLabel">Experiencia</label>
+          <select id="salary-experience"></select>
+        </div>
+        <div>
+          <label for="salary-strategy" data-i18n="salaryStrategyLabel">Estrategia</label>
+          <select id="salary-strategy">
+            <option value="conservative" data-i18n="salaryConservative">Conservadora</option>
+            <option value="realistic" selected data-i18n="salaryRealistic">Realista</option>
+            <option value="ambitious" data-i18n="salaryAmbitious">Ambiciosa</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid four-cols">
+        <div>
+          <label for="salary-sector" data-i18n="salarySectorLabel">Sector</label>
+          <select id="salary-sector">
+            <option value="general" data-i18n="sectorGeneral">General</option>
+            <option value="consulting" data-i18n="sectorConsulting">Consultoría</option>
+            <option value="mssp" data-i18n="sectorMssp">MSSP / SOC externo</option>
+            <option value="tech" data-i18n="sectorTech">Tecnología / producto</option>
+            <option value="finance" data-i18n="sectorFinance">Banca / finanzas</option>
+            <option value="industrial" data-i18n="sectorIndustrial">Industrial / ingeniería</option>
+            <option value="public" data-i18n="sectorPublic">Sector público</option>
+            <option value="startup" data-i18n="sectorStartup">Startup</option>
+            <option value="academia" data-i18n="sectorAcademia">Universidad / investigación</option>
+          </select>
+        </div>
+        <div>
+          <label for="salary-work-mode" data-i18n="salaryWorkModeLabel">Modalidad</label>
+          <select id="salary-work-mode">
+            <option value="onsite" data-i18n="workOnsite">Presencial</option>
+            <option value="hybrid" selected data-i18n="workHybrid">Híbrido</option>
+            <option value="remote" data-i18n="workRemote">Remoto nacional</option>
+            <option value="internationalRemote" data-i18n="workInternationalRemote">Remoto internacional</option>
+          </select>
+        </div>
+        <div>
+          <label for="salary-company-type" data-i18n="salaryCompanyLabel">Tipo de empresa</label>
+          <select id="salary-company-type">
+            <option value="local" data-i18n="companyLocal">Local / pequeña</option>
+            <option value="national" selected data-i18n="companyNational">Nacional / media</option>
+            <option value="multinational" data-i18n="companyMultinational">Multinacional</option>
+            <option value="bigTech" data-i18n="companyBigTech">Big Tech / alto crecimiento</option>
+            <option value="public" data-i18n="companyPublic">Pública / regulada</option>
+          </select>
+        </div>
+        <div>
+          <label for="salary-confidence" data-i18n="salaryConfidenceLabel">Confianza</label>
+          <select id="salary-confidence" disabled>
+            <option data-i18n="salaryConfidenceAuto">Automática según datos disponibles</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid two-cols manual-market-row">
+        <div>
+          <label for="salary-reference-low" data-i18n="salaryReferenceLowLabel">Rango local visto - mínimo</label>
+          <input id="salary-reference-low" type="number" min="0" step="100" placeholder="Ej.: 22000" />
+        </div>
+        <div>
+          <label for="salary-reference-high" data-i18n="salaryReferenceHighLabel">Rango local visto - máximo</label>
+          <input id="salary-reference-high" type="number" min="0" step="100" placeholder="Ej.: 32000" />
+        </div>
+      </div>
+      <p class="hint" data-i18n="salaryManualHint">Para países no soportados o mercados muy concretos, usa el modo asistido e introduce un rango real visto en ofertas locales.</p>
+
+      <div id="salary-output" class="salary-output empty" data-i18n="salaryPlaceholder">Calcula un rango para ver mínimo, contexto y objetivo recomendado.</div>
+    </section>
+
+    <section class="card">
+      <h2 data-i18n="formatTitle">6. Formato y generación del CV final</h2>
+      <div class="grid two-cols">
+        <div>
+          <label for="format-select" data-i18n="formatSelectLabel">Tipo de formato</label>
+          <select id="format-select"></select>
+          <p id="format-description" class="hint"></p>
+        </div>
+        <div>
+          <label for="ai-key" data-i18n="aiKeyLabel">API key opcional para IA externa</label>
+          <input id="ai-key" type="password" autocomplete="off" placeholder="No se guarda. Déjalo vacío para modo heurístico." />
+          <label for="ai-endpoint" class="mt" data-i18n="aiEndpointLabel">Endpoint IA opcional</label>
+          <input id="ai-endpoint" type="url" placeholder="https://api.openai.com/v1/chat/completions" />
+        </div>
+      </div>
+      <div class="button-row">
+        <button type="button" id="generate-cv" class="primary" data-i18n="generateCv">Generar CV editable</button>
+        <button type="button" id="build-ai-prompt" class="secondary" data-i18n="buildAiPrompt">Generar prompt IA</button>
+        <button type="button" id="ai-enhance" class="secondary" data-i18n="aiEnhance">Mejorar con IA externa</button>
+      </div>
+      <textarea id="ai-prompt-output" class="hidden" rows="8" readonly></textarea>
+    </section>
+
+    <section class="grid two-cols">
+      <div class="card">
+        <div class="card-heading">
+          <h2 data-i18n="finalCvTitle">7. CV final editable</h2>
+          <div class="button-row compact">
+            <button type="button" id="export-pdf" class="primary" data-i18n="exportPdf">Exportar PDF</button>
+            <button type="button" id="export-docx" class="primary" data-i18n="exportDocx">Exportar DOCX</button>
+          </div>
+        </div>
+        <div id="cv-output" class="cv-output" contenteditable="true" aria-label="Editable final CV"></div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="linkedinTitle">LinkedIn Optimizer</h2>
+        <div id="linkedin-output" class="linkedin-output empty" data-i18n="linkedinPlaceholder">Las sugerencias aparecerán tras analizar el CV.</div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <span>CV/LinkedIn Cybersecurity Optimizer</span>
+    <span data-i18n="footerText">Proyecto estático para portfolio, ATS y empleabilidad.</span>
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
+
+  <script src="assets/templates.js"></script>
+  <script src="assets/i18n.js"></script>
+  <script src="assets/parser.js"></script>
+  <script src="assets/analyzer.js"></script>
+  <script src="assets/salary.js"></script>
+  <script src="assets/formatter.js"></script>
+  <script src="assets/exporter.js"></script>
+  <script src="assets/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,1 @@
+Junior SOC Analyst. We are looking for a candidate with SIEM monitoring experience, alert triage, phishing analysis, malware investigation, escalation procedures, EDR/XDR tools, incident response basics, MITRE ATT&CK knowledge, log analysis and clear documentation. Experience with Microsoft Sentinel, Splunk, Elastic, Defender or CrowdStrike is valued.

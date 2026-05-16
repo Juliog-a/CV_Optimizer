@@ -2,156 +2,119 @@
   'use strict';
 
   const CV_FORMATS = [
-    {
-      id: 'reverse-chronological',
-      name: { es: 'Cronológico inverso', en: 'Reverse chronological' },
-      short: { es: 'Muy recomendado para la mayoría de perfiles profesionales.', en: 'Highly recommended for most professional profiles.' },
-      photo: 'optional',
-      template: 'ats'
-    },
-    {
-      id: 'hybrid-technical',
-      name: { es: 'Mixto / híbrido técnico', en: 'Technical hybrid' },
-      short: { es: 'Ideal para perfiles técnicos, ingeniería, IT, ciberseguridad y perfiles con proyectos.', en: 'Best for technical, engineering, IT, cybersecurity and project-based profiles.' },
-      photo: 'not-recommended',
-      template: 'hybrid'
-    },
-    {
-      id: 'ats-simple',
-      name: { es: 'ATS simple', en: 'Simple ATS' },
-      short: { es: 'Formato limpio para LinkedIn Jobs, Workday, Greenhouse y filtros ATS.', en: 'Clean format for LinkedIn Jobs, Workday, Greenhouse and ATS filters.' },
-      photo: 'not-recommended',
-      template: 'ats'
-    },
-    {
-      id: 'technical-projects',
-      name: { es: 'CV técnico por proyectos', en: 'Technical project CV' },
-      short: { es: 'Útil para software, ciberseguridad, datos, cloud, IA y portfolios.', en: 'Useful for software, cybersecurity, data, cloud, AI and portfolios.' },
-      photo: 'not-recommended',
-      template: 'project'
-    },
-    {
-      id: 'uk-ireland',
-      name: { es: 'CV internacional UK/Irlanda', en: 'UK/Ireland international CV' },
-      short: { es: 'Sin foto, sin datos personales sensibles y con foco en logros medibles.', en: 'No photo, no sensitive personal data and focused on measurable impact.' },
-      photo: 'avoid',
-      template: 'uk'
-    },
-    {
-      id: 'academic',
-      name: { es: 'CV académico', en: 'Academic CV' },
-      short: { es: 'Para másteres, becas, investigación, admisiones y universidad.', en: 'For master applications, scholarships, research, admissions and academia.' },
-      photo: 'optional',
-      template: 'academic'
-    },
-    {
-      id: 'europass',
-      name: { es: 'CV Europass', en: 'Europass CV' },
-      short: { es: 'Solo recomendable cuando una convocatoria lo pida expresamente.', en: 'Recommended only when specifically requested by a call or institution.' },
-      photo: 'optional',
-      template: 'ats'
-    },
-    {
-      id: 'executive',
-      name: { es: 'CV ejecutivo', en: 'Executive CV' },
-      short: { es: 'Para managers, dirección, consultoría senior y liderazgo.', en: 'For managers, leadership, senior consulting and executive roles.' },
-      photo: 'optional',
-      template: 'hybrid'
-    },
-    {
-      id: 'functional',
-      name: { es: 'Funcional por competencias', en: 'Functional skills-based CV' },
-      short: { es: 'Para cambios de sector o experiencia no lineal. Usar con cuidado.', en: 'For career changes or non-linear experience. Use carefully.' },
-      photo: 'optional',
-      template: 'hybrid'
-    },
-    {
-      id: 'visual-creative',
-      name: { es: 'Visual / creativo', en: 'Visual / creative CV' },
-      short: { es: 'Para diseño, marketing, comunicación o UX. No ideal para ATS técnico.', en: 'For design, marketing, communication or UX. Not ideal for technical ATS.' },
-      photo: 'allowed',
-      template: 'visual'
-    }
+    { id: 'reverse-chronological', name: { es: 'Cronológico inverso', en: 'Reverse chronological' }, short: { es: 'Ordena la experiencia de más reciente a más antigua. Muy sólido para perfiles con trayectoria clara.', en: 'Lists experience from newest to oldest. Strong default for linear careers.' }, template: 'reverse' },
+    { id: 'hybrid', name: { es: 'Mixto / híbrido', en: 'Hybrid' }, short: { es: 'Combina perfil, competencias y experiencia. Suele ser el mejor equilibrio para perfiles técnicos y junior+.', en: 'Combines summary, skills and experience. Often the best balance for technical and junior+ profiles.' }, template: 'hybrid' },
+    { id: 'ats-simple', name: { es: 'ATS simple', en: 'Simple ATS' }, short: { es: 'Formato limpio, sin columnas complejas ni gráficos. Prioritario para portales de empleo.', en: 'Clean layout without complex columns or graphics. Strong for job portals.' }, template: 'ats' },
+    { id: 'technical-projects', name: { es: 'Técnico por proyectos', en: 'Technical projects' }, short: { es: 'Da peso a proyectos, herramientas y resultados técnicos. Útil en IT, ingeniería, datos y portfolios.', en: 'Highlights projects, tools and technical output. Useful for IT, engineering, data and portfolios.' }, template: 'projects' },
+    { id: 'uk-ireland', name: { es: 'Internacional UK/Irlanda', en: 'UK/Ireland international' }, short: { es: 'Sin foto ni datos personales sensibles. Enfoque en impacto, herramientas y logros medibles.', en: 'No photo or sensitive personal data. Focuses on impact, tools and measurable achievements.' }, template: 'uk' },
+    { id: 'academic', name: { es: 'Académico', en: 'Academic' }, short: { es: 'Adecuado para becas, másteres, investigación, publicaciones y entorno universitario.', en: 'For scholarships, master applications, research, publications and academia.' }, template: 'academic' },
+    { id: 'europass', name: { es: 'Europass', en: 'Europass' }, short: { es: 'Úsalo solo si la convocatoria lo solicita expresamente o en procesos europeos formales.', en: 'Use only when explicitly requested or for formal EU procedures.' }, template: 'europass' },
+    { id: 'executive', name: { es: 'Ejecutivo', en: 'Executive' }, short: { es: 'Para perfiles senior, dirección, liderazgo, negocio y gestión de equipos.', en: 'For senior, leadership, business and team management profiles.' }, template: 'executive' },
+    { id: 'functional', name: { es: 'Funcional por competencias', en: 'Functional skills-based' }, short: { es: 'Puede ayudar en cambios de sector, pero es menos transparente para ATS y recruiters.', en: 'Can help career changes, but is less transparent for ATS and recruiters.' }, template: 'functional' },
+    { id: 'visual-creative', name: { es: 'Visual / creativo', en: 'Visual / creative' }, short: { es: 'Solo recomendable para marketing, comunicación, diseño, UX o candidaturas creativas.', en: 'Best reserved for marketing, communication, design, UX or creative applications.' }, template: 'visual' }
   ];
 
-  const TARGET_ROLES = [
-    'General / Other',
-    'SOC Analyst',
-    'Cybersecurity Analyst',
-    'Threat Analyst',
-    'Incident Response Analyst',
-    'Detection Engineer Junior',
-    'GRC Analyst',
-    'Cloud Security Junior',
-    'DFIR Junior',
-    'Security Engineer Junior',
-    'Software Developer',
-    'Data Analyst',
-    'Process Engineer',
-    'Project Manager'
+  const SECTORS = [
+    { id: 'technology', es: 'Tecnología / IT', en: 'Technology / IT' },
+    { id: 'cybersecurity', es: 'Ciberseguridad', en: 'Cybersecurity' },
+    { id: 'data-ai', es: 'Data / IA', en: 'Data / AI' },
+    { id: 'engineering', es: 'Ingeniería', en: 'Engineering' },
+    { id: 'business-finance', es: 'Empresa / ADE / Finanzas', en: 'Business / Finance' },
+    { id: 'marketing-comms', es: 'Marketing / Comunicación', en: 'Marketing / Communication' },
+    { id: 'legal-compliance', es: 'Legal / Compliance', en: 'Legal / Compliance' },
+    { id: 'education-research', es: 'Educación / Investigación', en: 'Education / Research' },
+    { id: 'health', es: 'Salud', en: 'Health' },
+    { id: 'other', es: 'Otro', en: 'Other' }
   ];
 
-  const ROLE_KEYWORDS = {
-    'General / Other': ['stakeholder management', 'communication', 'problem solving', 'documentation', 'process improvement', 'analysis', 'reporting', 'project coordination', 'quality', 'metrics'],
-    'Software Developer': ['software development', 'JavaScript', 'Python', 'Git', 'API', 'testing', 'debugging', 'frontend', 'backend', 'SQL', 'CI/CD', 'agile'],
-    'Data Analyst': ['SQL', 'Python', 'Excel', 'Power BI', 'Tableau', 'data cleaning', 'dashboard', 'KPI', 'statistics', 'reporting', 'ETL'],
-    'Process Engineer': ['process design', 'process simulation', 'mass balance', 'P&ID', 'HYSYS', 'Aspen', 'AutoCAD', 'optimization', 'technical documentation', 'commissioning', 'water treatment'],
-    'Project Manager': ['project planning', 'risk management', 'stakeholders', 'budget', 'timeline', 'delivery', 'scrum', 'coordination', 'reporting', 'scope'],
-    'SOC Analyst': ['SIEM', 'triage', 'alerts', 'incident response', 'phishing', 'malware', 'escalation', 'playbooks', 'MITRE ATT&CK', 'EDR', 'XDR', 'log analysis'],
-    'Cybersecurity Analyst': ['vulnerability management', 'incident response', 'risk', 'SIEM', 'EDR', 'security monitoring', 'hardening', 'threat detection', 'log analysis', 'security controls'],
-    'Threat Analyst': ['threat intelligence', 'IOCs', 'TTPs', 'MITRE ATT&CK', 'malware analysis', 'hunting', 'detection logic', 'adversary behavior', 'reporting'],
-    'Incident Response Analyst': ['incident response', 'containment', 'eradication', 'recovery', 'forensics', 'malware', 'phishing', 'escalation', 'playbooks', 'root cause analysis'],
-    'Detection Engineer Junior': ['Sigma', 'YARA', 'KQL', 'SPL', 'Elastic', 'detection rules', 'false positives', 'tuning', 'telemetry', 'Sysmon', 'SIEM engineering'],
-    'GRC Analyst': ['ISO 27001', 'risk assessment', 'compliance', 'policies', 'audit', 'governance', 'NIST', 'controls', 'documentation', 'third-party risk'],
-    'Cloud Security Junior': ['AWS', 'Azure', 'GCP', 'IAM', 'cloud security', 'logging', 'monitoring', 'Defender for Cloud', 'security groups', 'least privilege', 'CSPM'],
-    'DFIR Junior': ['digital forensics', 'incident response', 'timeline analysis', 'memory forensics', 'disk forensics', 'Volatility', 'Velociraptor', 'Sysmon', 'evidence handling'],
-    'Security Engineer Junior': ['firewalls', 'network security', 'hardening', 'EDR', 'SIEM', 'IAM', 'vulnerability management', 'automation', 'security architecture', 'Linux']
-  };
+  const LEVELS = [
+    { id: 'internship', es: 'Prácticas / Internship', en: 'Internship' },
+    { id: 'junior', es: 'Junior', en: 'Junior' },
+    { id: 'juniorPlus', es: 'Junior+', en: 'Junior+' },
+    { id: 'mid', es: 'Mid', en: 'Mid' },
+    { id: 'senior', es: 'Senior', en: 'Senior' },
+    { id: 'lead', es: 'Lead / Manager', en: 'Lead / Manager' },
+    { id: 'executive', es: 'Executive', en: 'Executive' }
+  ];
+
+  const TARGET_COUNTRIES = [
+    { id: 'ES', es: 'España', en: 'Spain' },
+    { id: 'IE', es: 'Irlanda', en: 'Ireland' },
+    { id: 'GB', es: 'Reino Unido', en: 'United Kingdom' },
+    { id: 'DE', es: 'Alemania', en: 'Germany' },
+    { id: 'FR', es: 'Francia', en: 'France' },
+    { id: 'NL', es: 'Países Bajos', en: 'Netherlands' },
+    { id: 'US', es: 'Estados Unidos', en: 'United States' },
+    { id: 'CA', es: 'Canadá', en: 'Canada' },
+    { id: 'MX', es: 'México', en: 'Mexico' },
+    { id: 'CL', es: 'Chile', en: 'Chile' },
+    { id: 'AR', es: 'Argentina', en: 'Argentina' },
+    { id: 'CO', es: 'Colombia', en: 'Colombia' },
+    { id: 'OTHER', es: 'Otro', en: 'Other' }
+  ];
 
   const COMMON_KEYWORDS = [
-    'Python', 'JavaScript', 'SQL', 'Excel', 'Power BI', 'Tableau', 'Git', 'GitHub', 'Docker', 'Linux', 'Windows', 'Azure', 'AWS', 'GCP',
-    'API', 'automation', 'documentation', 'stakeholders', 'KPI', 'reporting', 'risk', 'quality', 'testing', 'monitoring', 'optimization',
-    'Microsoft Sentinel', 'Splunk', 'Elastic', 'Wazuh', 'CrowdStrike', 'Microsoft Defender', 'Nessus', 'Qualys', 'Wireshark', 'Jira', 'ServiceNow'
+    'Excel', 'SQL', 'Python', 'Power BI', 'Tableau', 'JavaScript', 'Git', 'GitHub', 'Docker', 'Linux', 'Windows', 'Azure', 'AWS', 'API', 'automation', 'reporting', 'documentation', 'stakeholders', 'KPI', 'risk', 'compliance', 'quality', 'testing', 'process improvement', 'project management', 'data analysis', 'communication', 'problem solving', 'monitoring', 'optimization'
   ];
+
+  const SECTOR_KEYWORDS = {
+    technology: ['software', 'API', 'Git', 'testing', 'deployment', 'cloud', 'frontend', 'backend', 'agile'],
+    cybersecurity: ['SIEM', 'EDR', 'incident response', 'MITRE ATT&CK', 'phishing', 'malware', 'risk', 'SOC', 'hardening'],
+    'data-ai': ['SQL', 'Python', 'dashboard', 'statistics', 'Power BI', 'ETL', 'machine learning', 'data cleaning'],
+    engineering: ['process design', 'mass balance', 'P&ID', 'simulation', 'commissioning', 'AutoCAD', 'optimization', 'technical documentation'],
+    'business-finance': ['financial analysis', 'Excel', 'budget', 'forecasting', 'operations', 'stakeholders', 'KPI'],
+    'marketing-comms': ['content', 'campaigns', 'SEO', 'analytics', 'brand', 'copywriting', 'social media', 'communication'],
+    'legal-compliance': ['compliance', 'policy', 'audit', 'risk assessment', 'regulation', 'legal research', 'governance'],
+    'education-research': ['research', 'teaching', 'publication', 'methodology', 'academic writing', 'data collection'],
+    health: ['patient', 'clinical', 'healthcare', 'protocol', 'quality', 'documentation'],
+    other: ['communication', 'analysis', 'documentation', 'coordination', 'problem solving']
+  };
 
   const DEMO_EXAMPLES = [
     {
       id: 'soc-junior',
-      title: 'SOC Analyst junior',
-      cv: `Julio Demo SOC\njulio.demo@example.com | +34 600 000 000 | linkedin.com/in/juliodemo | github.com/juliodemo\n\nPerfil profesional\nAnalista SOC junior con experiencia en monitorización de alertas, revisión de eventos de seguridad y documentación de procedimientos. Interés en detección de amenazas, SIEM y respuesta a incidentes.\n\nCompetencias técnicas\nMicrosoft Sentinel, Splunk, Elastic, Defender, CrowdStrike, Windows, Linux, MITRE ATT&CK, phishing analysis, log analysis, KQL, Excel.\n\nExperiencia laboral\nSOC Analyst Intern - SecureOps Demo | 2025 - Actualidad\n- Monitorización de alertas en SIEM.\n- Análisis de correos sospechosos y escalado de incidentes.\n- Documentación de playbooks y procedimientos para el equipo N1.\n- Reducción de falsos positivos mediante revisión de reglas.\n\nEducación\nGrado en Ingeniería Informática - Universidad Demo | 2021 - 2025\n\nCertificaciones\nMicrosoft SC-900 | Introduction to Cybersecurity\n\nProyectos\nControlled File Encryption Lab - Simulación segura de cifrado de archivos para evaluar telemetría endpoint.\n\nIdiomas\nEspañol nativo, inglés B2`,
-      jd: `Junior SOC Analyst. We are looking for a candidate with SIEM monitoring experience, alert triage, phishing analysis, malware investigation, escalation procedures, EDR/XDR tools, incident response basics, MITRE ATT&CK knowledge, log analysis and clear documentation. Experience with Microsoft Sentinel, Splunk, Elastic, Defender or CrowdStrike is valued.`
+      title: 'Analista SOC junior',
+      sector: 'cybersecurity', country: 'IE', level: 'junior', salaryRole: 'soc', salaryLow: 38000, salaryHigh: 45000, currency: 'EUR',
+      cv: `Julio Demo SOC\njulio.demo@example.com | +34 600 000 000 | linkedin.com/in/juliodemo | github.com/juliodemo\n\nPerfil profesional\nAnalista SOC junior con experiencia en monitorización de alertas, revisión de eventos de seguridad y documentación de procedimientos. Interés en detección de amenazas, SIEM y respuesta a incidentes.\n\nCompetencias técnicas\nMicrosoft Sentinel, Splunk, Elastic, Defender, CrowdStrike, Windows, Linux, MITRE ATT&CK, phishing analysis, log analysis, KQL, Excel.\n\nExperiencia profesional\nSOC Analyst Intern - SecureOps Demo | 02/2025 - Actualidad\n- Monitorización de 60 alertas diarias en SIEM.\n- Análisis de correos sospechosos y escalado de incidentes.\n- Documentación de playbooks y procedimientos para el equipo N1.\n- Reducción de falsos positivos mediante revisión de reglas.\n\nEducación\nGrado en Ingeniería Informática - Universidad Demo | 2021 - 2025\n\nCertificaciones\nMicrosoft SC-900 | Introduction to Cybersecurity\n\nProyectos\nControlled File Encryption Lab - Simulación segura de cifrado de archivos para evaluar telemetría endpoint.\n\nIdiomas\nEspañol nativo, inglés B2`,
+      jd: `Junior SOC Analyst. We are looking for SIEM monitoring, alert triage, phishing analysis, escalation procedures, EDR/XDR tools, incident response basics, MITRE ATT&CK, log analysis and clear documentation. Microsoft Sentinel, Splunk, Elastic, Defender or CrowdStrike are valued.`
     },
     {
-      id: 'grc-junior',
-      title: 'GRC junior',
-      cv: `Ana Demo GRC\nana.grc@example.com | Madrid | linkedin.com/in/anagrcdemo\n\nPerfil profesional\nPerfil junior orientado a gobierno, riesgo y cumplimiento, con base técnica en ciberseguridad, documentación y mejora de procesos.\n\nCompetencias técnicas\nISO 27001, NIST CSF, Excel, Power BI, gestión documental, risk assessment, auditoría interna, políticas de seguridad.\n\nExperiencia laboral\nCybersecurity Support Intern - Consulting Demo | 2024 - 2025\n- Apoyo en revisión de controles de seguridad.\n- Preparación de documentación para auditorías internas.\n- Seguimiento de evidencias y políticas corporativas.\n\nEducación\nMáster en Ciberseguridad - Escuela Demo | 2025\nGrado en Administración y Dirección de Empresas | 2021 - 2025\n\nCertificaciones\nISO 27001 Foundation\n\nIdiomas\nEspañol nativo, inglés C1`,
-      jd: `GRC Analyst Junior role focused on ISO 27001, policy management, risk assessment, compliance evidence, internal audit support, security controls, documentation, NIST framework and third-party risk. Strong written communication and Excel skills required.`
+      id: 'process-engineer',
+      title: 'Ingeniero de procesos junior',
+      sector: 'engineering', country: 'ES', level: 'junior', salaryRole: 'engineering', salaryLow: 24000, salaryHigh: 32000, currency: 'EUR',
+      cv: `Carlos Demo Procesos\ncarlos.procesos@example.com | Sevilla | linkedin.com/in/carlosprocesos\n\nPerfil profesional\nIngeniero de procesos junior orientado a desalación, balances de masa, documentación técnica y optimización de cálculos repetitivos.\n\nCompetencias\nExcel avanzado, balances de masa, PFD, P&ID, AutoCAD, HYSYS básico, tratamiento de aguas, análisis de datos, documentación técnica.\n\nExperiencia profesional\nProcess Engineering Intern - WaterTech Demo | 09/2024 - 02/2025\n- Preparación de hojas de cálculo para estimaciones de presión y caudal.\n- Apoyo en revisión de documentación técnica de plantas de desalación.\n- Comparación de escenarios con diferentes temperaturas y salinidades.\n\nEducación\nGrado en Ingeniería Industrial - Universidad Demo | 2020 - 2025\n\nProyectos\nModelo preliminar de optimización de consumos en sistemas de ósmosis inversa.\n\nIdiomas\nEspañol nativo, inglés B2`,
+      jd: `Junior Process Engineer for water treatment projects. Requirements: mass balances, Excel, process documentation, PFD/P&ID interpretation, desalination or reverse osmosis knowledge, data analysis, technical reporting and communication with multidisciplinary teams.`
     },
     {
-      id: 'threat-analyst',
-      title: 'Threat Analyst',
-      cv: `Mario Threat Demo\nmario.threat@example.com | linkedin.com/in/mariothreat | github.com/mariothreat\n\nProfessional profile\nCybersecurity analyst focused on threat intelligence, adversary behavior and detection use cases.\n\nTechnical skills\nMITRE ATT&CK, threat intelligence, IOCs, malware sandboxing, OSINT, Sigma, YARA, Python, MISP, Elastic, Splunk, reporting.\n\nExperience\nThreat Intelligence Trainee - Demo CERT | 2024 - 2025\n- Prepared weekly threat reports for internal teams.\n- Collected IOCs from public and private sources.\n- Mapped suspicious activity to MITRE ATT&CK techniques.\n\nProjects\nIOC Enrichment Toolkit - Python scripts for normalizing domains, hashes and IP indicators.\n\nEducation\nComputer Engineering - Demo University | 2020 - 2024\n\nLanguages\nSpanish native, English C1`,
-      jd: `Threat Analyst position requiring threat intelligence, IOC analysis, TTP mapping, MITRE ATT&CK, malware analysis basics, threat hunting, detection logic, adversary behavior tracking, Python scripting and concise reporting for technical and non-technical stakeholders.`
+      id: 'data-analyst',
+      title: 'Data analyst junior',
+      sector: 'data-ai', country: 'GB', level: 'junior', salaryRole: 'data', salaryLow: 28000, salaryHigh: 36000, currency: 'GBP',
+      cv: `Marta Demo Data\nmarta.data@example.com | linkedin.com/in/martadata | github.com/martadata\n\nProfessional summary\nJunior data analyst with hands-on experience in SQL, Python, Excel and Power BI dashboards. Interested in business reporting and data quality.\n\nSkills\nSQL, Python, pandas, Excel, Power BI, Tableau basics, data cleaning, dashboard design, KPI reporting, statistics.\n\nWork experience\nData Analyst Intern - Retail Analytics Demo | 2024 - 2025\n- Built weekly sales dashboards for internal stakeholders.\n- Cleaned customer datasets using SQL and Python.\n- Documented recurring data quality issues and proposed validation checks.\n\nEducation\nBSc in Business Analytics - Demo University | 2021 - 2025\n\nProjects\nSales Dashboard Portfolio - Power BI dashboard with KPI segmentation and monthly trend analysis.\n\nLanguages\nSpanish native, English C1`,
+      jd: `Junior Data Analyst role requiring SQL, Python or R, Excel, Power BI dashboards, data cleaning, KPI reporting, stakeholder communication, documentation and basic statistics. Experience with retail or business analytics is a plus.`
     },
     {
-      id: 'detection-engineer',
-      title: 'Detection Engineer junior',
-      cv: `Laura Detection Demo\nlaura.detection@example.com | linkedin.com/in/lauradetection | github.com/lauradetection\n\nPerfil profesional\nAnalista técnica junior especializada en detección, reglas Sigma, telemetría endpoint y reducción de falsos positivos.\n\nCompetencias técnicas\nSigma, KQL, SPL, Elastic, Sysmon, Windows Event Logs, Velociraptor, Python, GitHub, SIEM engineering, MITRE ATT&CK.\n\nExperiencia laboral\nSecurity Lab Assistant - University Demo | 2024 - 2025\n- Creación de reglas de detección para eventos Windows.\n- Validación de telemetría de Sysmon en laboratorio.\n- Ajuste de reglas para reducir alertas irrelevantes.\n\nProyectos\nDetection Rules Lab - Repositorio con reglas Sigma y consultas KQL para técnicas MITRE simuladas.\n\nEducación\nGrado en Ingeniería de Telecomunicaciones | 2021 - 2025\n\nIdiomas\nEspañol nativo, inglés B2`,
-      jd: `Junior Detection Engineer. Required knowledge: Sigma, YARA, KQL, SPL, Elastic, detection rules, false positive tuning, Windows telemetry, Sysmon, SIEM engineering, MITRE ATT&CK and documentation of detection logic.`
+      id: 'marketing-comms',
+      title: 'Marketing / comunicación junior',
+      sector: 'marketing-comms', country: 'ES', level: 'junior', salaryRole: 'business', salaryLow: 20000, salaryHigh: 27000, currency: 'EUR',
+      cv: `Lucía Demo Comunicación\nlucia.comms@example.com | linkedin.com/in/luciacomms | portfolio-demo.com\n\nPerfil profesional\nPerfil junior de marketing y comunicación con experiencia en contenidos, redes sociales, campañas y análisis básico de métricas.\n\nCompetencias\nCopywriting, SEO básico, Google Analytics, Canva, Meta Business Suite, LinkedIn, planificación editorial, comunicación corporativa.\n\nExperiencia profesional\nMarketing Assistant Intern - Brand Demo | 2024 - 2025\n- Redacción de contenidos para blog, LinkedIn e Instagram.\n- Apoyo en campañas de captación y análisis de métricas semanales.\n- Coordinación de materiales con diseño y ventas.\n\nEducación\nGrado en Marketing y Comunicación - Universidad Demo | 2021 - 2025\n\nProyectos\nCampaña universitaria de lanzamiento con calendario editorial y medición de engagement.\n\nIdiomas\nEspañol nativo, inglés B2`,
+      jd: `Junior Marketing and Communications Specialist. We need content writing, social media planning, SEO basics, campaign support, analytics, brand communication, Canva, LinkedIn and clear reporting skills.`
     },
     {
-      id: 'cloud-security',
-      title: 'Cloud Security junior',
-      cv: `Carlos Cloud Demo\ncarlos.cloud@example.com | linkedin.com/in/carloscloud | github.com/carloscloud\n\nProfessional profile\nJunior cloud and cybersecurity profile with hands-on labs in Azure, IAM and security monitoring.\n\nTechnical skills\nAzure, AWS basics, IAM, Microsoft Defender for Cloud, logging, monitoring, security groups, least privilege, Terraform basics, Linux, Python.\n\nExperience\nIT Security Intern - Cloud Demo | 2024 - 2025\n- Reviewed access permissions and basic IAM configurations.\n- Supported monitoring of cloud logs and security recommendations.\n- Documented hardening actions for virtual machines.\n\nProjects\nAzure Security Baseline Lab - Deployment of a small cloud environment with logging and least privilege practices.\n\nEducation\nHigher Technical Degree in Network Systems Administration | 2022 - 2024\n\nCertifications\nMicrosoft SC-900, AZ-900\n\nLanguages\nSpanish native, English B2`,
-      jd: `Cloud Security Junior role. The candidate should understand Azure or AWS, IAM, cloud logging, monitoring, least privilege, security groups, Defender for Cloud, CSPM basics, scripting, documentation and security baseline implementation.`
+      id: 'project-manager',
+      title: 'Project manager junior / consultoría',
+      sector: 'business-finance', country: 'NL', level: 'juniorPlus', salaryRole: 'project', salaryLow: 42000, salaryHigh: 52000, currency: 'EUR',
+      cv: `Álvaro Demo Consultoría\nalvaro.pm@example.com | linkedin.com/in/alvaropm\n\nPerfil profesional\nPerfil junior+ de gestión de proyectos y consultoría con base en análisis de negocio, coordinación de equipos y seguimiento de entregables.\n\nCompetencias\nProject planning, Excel, PowerPoint, Jira, stakeholder management, risk tracking, reporting, business analysis, process improvement.\n\nExperiencia profesional\nJunior Consultant - Strategy Demo | 2023 - 2025\n- Seguimiento de planes de trabajo y coordinación de entregables con 4 áreas.\n- Preparación de reportes ejecutivos semanales para clientes.\n- Identificación de riesgos y dependencias en proyectos de transformación.\n\nEducación\nGrado en ADE - Universidad Demo | 2019 - 2023\n\nCertificaciones\nScrum Fundamentals Certified\n\nIdiomas\nEspañol nativo, inglés C1`,
+      jd: `Junior Project Manager / Consultant. Requirements: project planning, stakeholder management, risk tracking, reporting, Jira or similar tools, business analysis, process improvement, PowerPoint and strong written communication.`
     }
   ];
 
   window.CVOTemplates = {
     CV_FORMATS,
-    TARGET_ROLES,
-    ROLE_KEYWORDS,
+    SECTORS,
+    LEVELS,
+    TARGET_COUNTRIES,
     COMMON_KEYWORDS,
+    SECTOR_KEYWORDS,
     DEMO_EXAMPLES
   };
 })(window);

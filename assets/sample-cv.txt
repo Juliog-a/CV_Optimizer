@@ -1,27 +1,23 @@
-Julio Demo SOC
-julio.demo@example.com | +34 600 000 000 | linkedin.com/in/juliodemo | github.com/juliodemo
+Marta Demo Data
+marta.data@example.com | linkedin.com/in/martadata | github.com/martadata
 
-Perfil profesional
-Analista SOC junior con experiencia en monitorización de alertas, revisión de eventos de seguridad y documentación de procedimientos. Interés en detección de amenazas, SIEM y respuesta a incidentes.
+Professional summary
+Junior data analyst with hands-on experience in SQL, Python, Excel and Power BI dashboards. Interested in business reporting and data quality.
 
-Competencias técnicas
-Microsoft Sentinel, Splunk, Elastic, Defender, CrowdStrike, Windows, Linux, MITRE ATT&CK, phishing analysis, log analysis, KQL, Excel.
+Skills
+SQL, Python, pandas, Excel, Power BI, Tableau basics, data cleaning, dashboard design, KPI reporting, statistics.
 
-Experiencia laboral
-SOC Analyst Intern - SecureOps Demo | 2025 - Actualidad
-- Monitorización de alertas en SIEM.
-- Análisis de correos sospechosos y escalado de incidentes.
-- Documentación de playbooks y procedimientos para el equipo N1.
-- Reducción de falsos positivos mediante revisión de reglas.
+Work experience
+Data Analyst Intern - Retail Analytics Demo | 2024 - 2025
+- Built weekly sales dashboards for internal stakeholders.
+- Cleaned customer datasets using SQL and Python.
+- Documented recurring data quality issues and proposed validation checks.
 
-Educación
-Grado en Ingeniería Informática - Universidad Demo | 2021 - 2025
+Education
+BSc in Business Analytics - Demo University | 2021 - 2025
 
-Certificaciones
-Microsoft SC-900 | Introduction to Cybersecurity
+Projects
+Sales Dashboard Portfolio - Power BI dashboard with KPI segmentation and monthly trend analysis.
 
-Proyectos
-Controlled File Encryption Lab - Simulación segura de cifrado de archivos para evaluar telemetría endpoint.
-
-Idiomas
-Español nativo, inglés B2
+Languages
+Spanish native, English C1

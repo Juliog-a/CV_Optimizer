@@ -1,96 +1,229 @@
-# CV & LinkedIn Career Optimizer
+# CareerFit CV Optimizer
 
-Static web app to parse a CV, compare it with a job description, calculate an ATS-oriented compatibility score, recommend a CV format, improve weak bullets, generate LinkedIn suggestions, estimate a negotiation-oriented salary range and export an editable final CV to PDF or DOCX.
+Static frontend app to help any professional user convert a CV into a cleaner format, compare it with a job description using ATS-oriented heuristics, and estimate a negotiation-oriented salary range.
 
-> Portfolio sentence: **Created an AI-based cybersecurity CV optimizer that compares resumes against job descriptions and suggests ATS-oriented improvements for SOC, GRC, Threat Analyst and cybersecurity roles.**
-
-Although the initial portfolio angle is cybersecurity, the app also works for general professional profiles. It includes generic role support, a custom target role field and keyword extraction from any job description.
+The project is designed to run directly in the browser and to be deployable on **GitHub Pages** without backend, build process or server-side storage.
 
 ---
 
-## Features
+## What the app does
 
-- Upload or paste a CV in PDF, DOCX, TXT, MD or JSON.
-- Local parsing of key CV fields:
-  - name;
-  - email;
-  - phone;
-  - LinkedIn;
-  - GitHub;
-  - portfolio;
-  - professional profile;
-  - technical skills;
-  - work experience;
-  - education;
-  - certifications;
-  - projects;
-  - languages.
-- Paste or upload a job description.
-- Spanish / English interface switch.
-- Final CV language selector.
-- Multiple target roles:
-  - SOC Analyst;
-  - Cybersecurity Analyst;
-  - Threat Analyst;
-  - Incident Response Analyst;
-  - Detection Engineer Junior;
-  - GRC Analyst;
-  - Cloud Security Junior;
-  - DFIR Junior;
-  - Security Engineer Junior;
-  - Software Developer;
-  - Data Analyst;
-  - Process Engineer;
-  - Project Manager;
-  - General / Other.
-- Custom target role for any profession.
-- ATS compatibility score from 0 to 100.
-- Found and missing keywords.
-- Incomplete section detection.
-- CV risks and ATS recommendations.
-- Weak bullet improvement suggestions.
-- LinkedIn headline, About, skills, featured projects and recruiter pitch suggestions.
-- Global salary range estimator with two levels:
-  - baseline mode for supported markets;
-  - assisted local benchmark mode for any country.
-- CV format recommendation engine.
-- Profile photo upload with warnings by format and destination.
-- Editable final CV preview before export.
-- Export to PDF and DOCX.
-- Demo mode with rotating examples.
-- Light/dark visual mode.
-- GitHub Pages compatible.
+CareerFit CV Optimizer has three main modules:
+
+1. **Convert CV format**
+   - Upload PDF, DOCX, TXT, MD or JSON.
+   - Paste CV text manually.
+   - Extract and normalize text.
+   - Parse structured CV fields.
+   - Edit fields manually.
+   - Choose among 10 CV formats using visual cards.
+   - Export the final CV to PDF or DOCX.
+
+2. **ATS recommendation**
+   - Paste or upload a job description.
+   - Use free-text target role instead of a closed role checklist.
+   - Select sector, seniority, target country and CV language.
+   - Calculate a compatibility score.
+   - Show found keywords, missing keywords, incomplete sections, risks and improvement recommendations.
+   - Generate an optional AI prompt for external review.
+
+3. **Salary calculator**
+   - Estimate red/orange/green negotiation bands.
+   - Use baseline markets for common countries.
+   - Use assisted mode for any country by entering a local salary range seen in comparable offers.
+   - Adjust using role family, seniority, experience, work mode, company type, sector and CV signals.
 
 ---
 
-## Included CV formats
+## Main CV formats
+
+The UI shows the 10 formats as selectable cards:
 
 1. Reverse chronological / Cronológico inverso.
-2. Technical hybrid / Mixto técnico.
+2. Hybrid / Mixto.
 3. Simple ATS / ATS simple.
-4. Technical project CV / Técnico por proyectos.
-5. UK/Ireland international CV / Internacional UK-Irlanda.
-6. Academic CV / Académico.
-7. Europass-style basic option.
-8. Executive CV.
-9. Functional skills-based CV.
-10. Visual / creative CV.
+4. Technical projects / Técnico por proyectos.
+5. UK/Ireland international / Internacional UK-Irlanda.
+6. Academic / Académico.
+7. Europass.
+8. Executive / Ejecutivo.
+9. Functional skills-based / Funcional por competencias.
+10. Visual / creative / Visual creativo.
 
-Four formats have stronger templates in the MVP:
+Each card receives a suitability label:
 
-- ATS Simple;
-- Technical Hybrid;
-- Technical Projects;
-- UK/Ireland International.
+- **Green**: recommended.
+- **Orange**: possible depending on the case.
+- **Red**: not recommended or high risk.
 
-The rest are selectable and mapped to simpler internal templates.
+The recommendation engine considers target country, sector, seniority, projects, technical skills, certifications, academic orientation and creative/marketing context.
+
+---
+
+## Parsing improvements
+
+The parser was rebuilt to reduce the common PDF problem where text is extracted as one long line.
+
+Implemented changes:
+
+- PDF extraction uses `pdf.js` and `getTextContent()`.
+- Text items are grouped using coordinates:
+  - sort by Y coordinate and then X coordinate;
+  - group close Y positions into lines;
+  - preserve spaces using X gaps;
+  - add blank lines when vertical gaps are large.
+- Text normalization repairs common PDF artefacts:
+  - broken emails;
+  - broken URLs and slugs such as `juliog - a.github.io` → `juliog-a.github.io`;
+  - common split technical keywords such as `SI EM` → `SIEM`;
+  - bullet variants;
+  - Unicode dashes;
+  - repeated spaces and line breaks.
+- Section segmentation uses heading positions instead of copying fallback text into all sections.
+- If a section is not detected confidently, it remains empty and appears in the UI as **No detectado**.
+- Each field has a confidence state: `high`, `medium`, `low` or `missing`.
+- A manual mode allows users to complete sections or place unstructured text into one single section without duplicating the whole CV.
+
+Important limitation: PDF parsing is still heuristic. Highly visual CVs with multiple columns, icons, tables or unusual typography can require manual correction.
+
+---
+
+## ATS analysis logic
+
+The default mode is local and heuristic. It does not call an AI model.
+
+The score uses:
+
+- structured CV completeness;
+- keyword overlap between CV and job description;
+- sector keyword libraries;
+- job-description token extraction;
+- metrics detection;
+- professional links;
+- missing sections;
+- ATS risks such as excessive length or personal data for international markets.
+
+The app can generate an optional prompt for an external AI reviewer, but no API key is hardcoded and no external call is made unless explicitly implemented/configured by the user.
+
+---
+
+## Salary calculator logic
+
+The salary calculator is an orientation tool, not a salary database.
+
+It works in two modes:
+
+### 1. Baseline mode
+
+For supported markets, the app uses internal approximate anchor ranges by country and role family. These anchors are adjusted by:
+
+- seniority;
+- years of experience;
+- sector;
+- company type;
+- work mode;
+- negotiation strategy;
+- profile signals such as tools, certifications, languages, metrics and links.
+
+### 2. Assisted mode
+
+For unsupported markets or more specific contexts, the user enters a local salary range seen in real offers. The app turns that input into:
+
+- **Red**: below market / weak negotiation zone.
+- **Orange**: reasonable range.
+- **Green**: recommended negotiation target.
+
+All salary outputs include the warning that the estimate is indicative and should be checked against local salary sources.
+
+---
+
+## Demo mode
+
+The **Cargar ejemplo** button rotates through varied examples:
+
+1. Junior SOC Analyst.
+2. Junior Process Engineer.
+3. Junior Data Analyst.
+4. Junior Marketing / Communications profile.
+5. Junior Project Manager / Consulting profile.
+
+Each demo includes:
+
+- CV text;
+- job description;
+- sector;
+- country;
+- seniority;
+- approximate local salary reference.
+
+---
+
+## Privacy
+
+- CV parsing runs locally in the browser.
+- GitHub Pages deployment has no backend.
+- No CV is stored server-side by this project.
+- No API key is hardcoded.
+- API key fields are temporary browser inputs and are not saved to localStorage, sessionStorage or cookies.
+- If a user connects an external AI provider in a future version, the CV/job text may be sent to that provider.
+
+---
+
+## How to run locally
+
+### Option 1: open directly
+
+Open `index.html` in a modern browser.
+
+### Option 2: local server
+
+Recommended for testing file handling and CDN libraries:
+
+```bash
+cd careerfit-cv-optimizer
+python -m http.server 8000
+```
+
+Then open:
+
+```text
+http://localhost:8000
+```
+
+---
+
+## Deploy to GitHub Pages
+
+1. Create a GitHub repository.
+2. Upload all files in the project folder to the repository root.
+3. Go to **Settings → Pages**.
+4. Choose:
+   - Source: `Deploy from a branch`;
+   - Branch: `main`;
+   - Folder: `/root`.
+5. Save and wait for GitHub Pages to publish.
+
+No build step is required.
+
+---
+
+## Technologies
+
+- HTML5.
+- CSS3.
+- Vanilla JavaScript.
+- `pdf.js` for PDF text extraction.
+- `mammoth.js` for DOCX text extraction.
+- `jsPDF` for PDF export.
+- `docx.js` for DOCX export.
+- `FileSaver.js` for browser downloads.
 
 ---
 
 ## Project structure
 
 ```text
-cv-cybersecurity-optimizer/
+careerfit-cv-optimizer/
   index.html
   assets/
     styles.css
@@ -112,168 +245,14 @@ cv-cybersecurity-optimizer/
 
 ---
 
-## How to run locally
+## Known limitations
 
-### Option 1: open directly
-
-Open `index.html` in your browser.
-
-This works because the JavaScript files are loaded as classic scripts, not ES modules, so the project does not require a local build server.
-
-### Option 2: use a small local server
-
-Recommended if your browser blocks CDN libraries or file access.
-
-```bash
-cd cv-cybersecurity-optimizer
-python -m http.server 8000
-```
-
-Then open:
-
-```text
-http://localhost:8000
-```
-
----
-
-## How to deploy to GitHub Pages
-
-1. Create a new GitHub repository.
-2. Upload all files from this folder to the repository root.
-3. Go to **Settings → Pages**.
-4. In **Build and deployment**, choose:
-   - Source: `Deploy from a branch`;
-   - Branch: `main`;
-   - Folder: `/root`.
-5. Save.
-6. Wait for GitHub Pages to publish the site.
-7. Open the URL generated by GitHub.
-
-No build step is required.
-
----
-
-## Technologies used
-
-Core:
-
-- HTML5;
-- CSS3;
-- Vanilla JavaScript.
-
-Browser libraries loaded from CDN:
-
-- `pdf.js` for PDF text extraction;
-- `mammoth.js` for DOCX text extraction;
-- `jsPDF` for PDF export;
-- `docx.js` for DOCX export;
-- `FileSaver.js` for file downloads.
-
----
-
-## Privacy and security
-
-- CV and job description parsing runs locally in the browser.
-- No backend is included.
-- GitHub Pages serves only static files.
-- No API key is hardcoded.
-- The optional API key field is not saved in localStorage, sessionStorage or cookies.
-- If external AI is used, the user-provided API key is held only in the current page session and cleared after the call attempt.
-- If external AI is enabled, the CV and job description are sent to the configured API endpoint.
-
----
-
-## What is real AI and what is heuristic?
-
-### Heuristic/local mode
-
-This is the default mode and works without any API key. It uses deterministic analysis:
-
-- keyword matching between CV and job description;
-- role-based keyword libraries;
-- generic keyword extraction from job descriptions;
-- section completeness checks;
-- metric detection;
-- action verb detection;
-- risk detection for ATS-unfriendly patterns;
-- template and format recommendation rules;
-- bullet improvement templates;
-- LinkedIn suggestion templates.
-
-### External AI mode
-
-The app includes an optional external AI call area. The user can provide:
-
-- a temporary API key;
-- a compatible chat-completions endpoint.
-
-The app builds a structured prompt and attempts to call that endpoint. This is intentionally optional because direct browser calls to AI providers can be limited by CORS or security policy. For production usage, move this call to a small backend or serverless proxy.
-
----
-
-
-## Global Salary Range Estimator
-
-The app includes a salary estimator designed as a negotiation aid, not as an official salary source.
-
-It works in two levels:
-
-### Level 1 — Baseline market mode
-
-For supported markets, the app uses broad internal annual gross salary baselines by country and role family. The final estimate is adjusted by:
-
-- detected role family;
-- estimated seniority;
-- detected years of experience;
-- tools and certifications found in the CV;
-- language signals;
-- metrics and professional links;
-- sector;
-- work mode;
-- company type;
-- negotiation strategy.
-
-The result is shown in three bands:
-
-- **Red / minimum:** below-market or only acceptable for learning, visa, brand or strategic transition.
-- **Orange / context:** reasonable range depending on company, modality and fit.
-- **Green / recommended:** target negotiation range if the CV, interview and market support it.
-
-### Level 2 — Assisted local benchmark mode
-
-For unsupported countries, very specific sectors or volatile markets, the user enters a real local range observed in job ads. The app then adjusts that range using the CV profile signals.
-
-This makes the feature usable for any country while avoiding fake precision.
-
-## Demo mode
-
-Click **Cargar ejemplo / Load example**.
-
-Each click loads a different example from a rotating list:
-
-1. SOC Analyst junior.
-2. GRC junior.
-3. Threat Analyst.
-4. Detection Engineer junior.
-5. Cloud Security junior.
-
-Each example includes both a CV and a job description.
-
----
-
-## Suggested screenshots for portfolio
-
-Take screenshots of:
-
-1. Homepage with the light professional UI and language switch.
-2. CV parser with structured editable fields.
-3. ATS score and keyword analysis.
-4. Format recommendation explanation.
-5. Final CV preview.
-6. LinkedIn Optimizer section.
-7. Global salary range estimator with red/orange/green bands.
-8. PDF/DOCX export buttons.
+- PDF parsing is robust for common text-based PDFs, but not perfect for visual CVs, scanned documents or complex multi-column layouts.
+- There is no OCR. Scanned PDFs need manual text extraction first.
+- ATS score is heuristic and should be treated as guidance, not as a real ATS vendor score.
+- Salary ranges are approximate and intentionally conservative.
+- External AI is not required for the app to work.
+- The generated PDF/DOCX is clean and ATS-friendly, but not a full professional desktop publishing engine.
 
 ---
 
@@ -281,63 +260,19 @@ Take screenshots of:
 
 This project demonstrates:
 
-- robust browser-side parsing for flattened PDF/DOCX/TXT CV text;
-- ATS-oriented analysis;
-- role-based keyword modeling;
-- CV generation and document export;
-- UX for employability and recruitment tooling;
-- cybersecurity-specific positioning while remaining usable for general professional profiles;
-- generalization to non-cybersecurity profiles;
-- optional AI integration design;
-- salary estimation UX with conservative/context/recommended bands;
-- privacy-first static architecture;
-- practical GitHub Pages deployment.
+- browser-side document parsing;
+- PDF/DOCX/TXT ingestion;
+- coordinate-based PDF line reconstruction;
+- structured CV extraction with confidence levels;
+- UX simplification from a long wizard to a three-module SaaS-style interface;
+- ATS-oriented keyword analysis;
+- CV format recommendation logic;
+- PDF and DOCX export;
+- heuristic salary estimation;
+- privacy-aware static frontend design;
+- basic internationalization;
+- GitHub Pages deployment readiness.
 
----
+Suggested portfolio sentence:
 
-## How to cite it on a CV or LinkedIn
-
-### English
-
-**CV & LinkedIn Career Optimizer** — Created a static AI-assisted web app that parses resumes, compares them against job descriptions, calculates ATS compatibility, recommends CV formats, estimates salary negotiation ranges and exports optimized CVs to PDF/DOCX. Built with HTML, CSS, vanilla JavaScript, pdf.js, mammoth.js, jsPDF and docx.js.
-
-### Spanish
-
-**CV & LinkedIn Career Optimizer** — Desarrollo de una aplicación web estática asistida por IA que interpreta CVs, los compara con ofertas de empleo, calcula compatibilidad ATS, recomienda formatos de CV, estima rangos salariales de negociación y exporta versiones optimizadas en PDF/DOCX. Construida con HTML, CSS, JavaScript vanilla, pdf.js, mammoth.js, jsPDF y docx.js.
-
----
-
-## Limitations of the MVP
-
-- PDF parsing depends on extractable text. Scanned PDFs are not supported unless OCR is added.
-- DOCX parsing extracts raw text, not complex layout.
-- The ATS score is an approximation, not an official ATS result.
-- The app does not guarantee interview success.
-- Salary ranges are indicative and must be validated with local job ads, recruiters and salary guides.
-- The export templates are intentionally simple to preserve ATS readability.
-- External AI calls from the browser may fail depending on provider CORS policy.
-- No backend persistence or user account system is included.
-
----
-
-## Future improvements
-
-- Add OCR support with Tesseract.js for scanned CVs.
-- Add a Cloudflare Worker to proxy AI calls securely.
-- Add deeper multilingual CV rewriting.
-- Add role packs beyond cybersecurity and IT.
-- Connect salary data to periodically updated external salary surveys or a maintained dataset.
-- Add city-level salary calibration and cost-of-living context.
-- Add real ATS-style parsing simulation.
-- Add drag-and-drop file upload.
-- Add template preview thumbnails.
-- Add local browser storage for user drafts, with explicit opt-in.
-- Add unit tests for parser/analyzer functions and more CV layout edge cases.
-- Add accessibility audit and keyboard navigation improvements.
-- Add better DOCX visual styling with margins, headings and section spacing.
-
----
-
-## Development notes
-
-The project is intentionally static and simple. There is no npm build, no framework and no backend. This makes it easy to upload directly to GitHub Pages and present as a portfolio project built in a short sprint.
+> Built CareerFit CV Optimizer, a privacy-aware static web app that parses CVs, recommends ATS-friendly formats, compares resumes with job descriptions and generates PDF/DOCX outputs with a heuristic salary negotiation estimator.

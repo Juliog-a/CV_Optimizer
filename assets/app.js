@@ -2,113 +2,320 @@
   'use strict';
 
   const state = {
-    cvText: '',
-    jdText: '',
-    cv: {},
-    analysis: null,
-    salaryResult: null,
-    demoIndex: Math.floor(Math.random() * window.CVOTemplates.DEMO_EXAMPLES.length),
-    lastDemoId: null,
-    photoDataUrl: ''
+    cv: {}, rawText: '', jdText: '', analysis: null, selectedFormat: 'ats-simple', demoIndex: Math.floor(Math.random() * window.CVOTemplates.DEMO_EXAMPLES.length), lastDemoId: null, salaryResult: null
   };
+
+  const FIELD_CONFIG = [
+    ['name', 'Nombre', 'compact'], ['email', 'Email', 'compact'], ['phone', 'Teléfono', 'compact'], ['linkedin', 'LinkedIn', 'compact'], ['github', 'GitHub / portfolio', 'compact'], ['portfolio', 'Web personal', 'compact'],
+    ['profile', 'Perfil profesional'], ['experience', 'Experiencia'], ['education', 'Educación'], ['skills', 'Competencias'], ['certifications', 'Certificaciones'], ['projects', 'Proyectos'], ['languages', 'Idiomas'], ['awards', 'Premios u otros'], ['other', 'Otros']
+  ];
+
+  const SALARY_SECTORS = [
+    ['general', 'General'], ['tech', 'Tecnología'], ['finance', 'Finanzas'], ['industrial', 'Ingeniería / industrial'], ['consulting', 'Consultoría'], ['public', 'Público / regulado'], ['startup', 'Startup'], ['academia', 'Academia / investigación'], ['mssp', 'MSSP / ciberseguridad']
+  ];
 
   const $ = (selector) => document.querySelector(selector);
   const $$ = (selector) => Array.from(document.querySelectorAll(selector));
-  const t = (key) => window.CVOi18n.t(key);
+  const lang = () => window.CVOi18n?.getLanguage?.() || 'es';
 
   function setStatus(message, type) {
     const node = $('#cv-status');
+    if (!node) return;
     node.textContent = message || '';
     node.className = `status ${type || ''}`;
   }
 
-  function getSelectedRoles() {
-    return $$('#role-options input[type="checkbox"]:checked').map((input) => input.value);
+  function optionLabel(item) {
+    return item[lang()] || item.es || item.en || item.name || item.id;
   }
 
-  function getOptions() {
+  function fillSelect(selector, items, selected) {
+    const node = $(selector);
+    if (!node) return;
+    node.innerHTML = items.map((item) => `<option value="${item.id}">${optionLabel(item)}</option>`).join('');
+    if (selected) node.value = selected;
+  }
+
+  function fillSalaryControls() {
+    if (!window.CVOSalary) return;
+    $('#salary-country').innerHTML = window.CVOSalary.COUNTRIES.map((country) => `<option value="${country.code}" data-currency="${country.currency}">${country.name}${country.supported ? ' · baseline' : ' · assisted'}</option>`).join('');
+    $('#salary-currency').innerHTML = window.CVOSalary.CURRENCIES.map((currency) => `<option value="${currency}">${currency}</option>`).join('');
+    $('#salary-role').innerHTML = window.CVOSalary.ROLE_OPTIONS.map((role) => `<option value="${role.id}">${role.label[lang()] || role.label.es}</option>`).join('');
+    $('#salary-seniority').innerHTML = Object.entries(window.CVOSalary.SENIORITY).map(([id, value]) => `<option value="${id}">${value.label[lang()] || value.label.es}</option>`).join('');
+    $('#salary-seniority').insertAdjacentHTML('afterbegin', '<option value="auto">Automático desde CV</option>');
+    $('#salary-experience').innerHTML = window.CVOSalary.EXPERIENCE_OPTIONS.map((item) => `<option value="${item.value}">${item.label[lang()] || item.label.es}</option>`).join('');
+    $('#salary-sector').innerHTML = SALARY_SECTORS.map(([id, label]) => `<option value="${id}">${label}</option>`).join('');
+    $('#salary-country').value = 'ES';
+    syncSalaryCurrency();
+  }
+
+  function fillContextControls() {
+    fillSelect('#sector', window.CVOTemplates.SECTORS, 'technology');
+    fillSelect('#level', window.CVOTemplates.LEVELS, 'junior');
+    fillSelect('#target-country', window.CVOTemplates.TARGET_COUNTRIES, 'ES');
+  }
+
+  function getContextOptions() {
     return {
-      roles: getSelectedRoles(),
-      customRole: $('#custom-role').value.trim(),
-      destination: $('#destination').value,
-      lang: $('#output-language').value,
-      formatId: $('#format-select').value,
-      includePhoto: $('#include-photo').checked,
-      photoDataUrl: state.photoDataUrl
+      targetRole: $('#target-role')?.value.trim() || '',
+      customRole: $('#target-role')?.value.trim() || '',
+      roles: [],
+      sector: $('#sector')?.value || 'technology',
+      level: $('#level')?.value || 'junior',
+      country: $('#target-country')?.value || 'ES',
+      lang: $('#cv-language')?.value || lang(),
+      formatId: state.selectedFormat
     };
   }
 
-  function renderRoles() {
-    $('#role-options').innerHTML = window.CVOTemplates.TARGET_ROLES.map((role, index) => `
-      <label class="pill">
-        <input type="checkbox" value="${role}" ${index === 0 ? 'checked' : ''} />
-        <span>${role}</span>
-      </label>`).join('');
+  function activateTab(id) {
+    $$('.module-card').forEach((button) => button.classList.toggle('active', button.dataset.tab === id));
+    $$('.tab-panel').forEach((panel) => panel.classList.toggle('active', panel.id === `panel-${id}`));
+  }
+
+  function confidenceLabel(value) {
+    const map = { high: 'Alta', medium: 'Media', low: 'Revisar', missing: 'No detectado' };
+    return map[value] || map.missing;
+  }
+
+  function renderStructured() {
+    const container = $('#structured-fields');
+    if (!container) return;
+    const confidence = state.cv.confidence || {};
+    container.innerHTML = FIELD_CONFIG.map(([key, label, compact]) => {
+      const value = state.cv[key] || '';
+      const conf = confidence[key] || (value ? 'medium' : 'missing');
+      return `<div class="field-box ${compact || ''}">
+        <label for="field-${key}">${label}<span class="confidence ${conf}">${confidenceLabel(conf)}</span></label>
+        <textarea id="field-${key}" data-field="${key}" placeholder="${conf === 'missing' ? 'No detectado. Puedes completarlo manualmente.' : ''}">${window.CVOAnalyzer.escapeHtml(value)}</textarea>
+      </div>`;
+    }).join('');
+  }
+
+  function applyStructuredFields() {
+    $$('#structured-fields [data-field]').forEach((node) => {
+      state.cv[node.dataset.field] = node.value.trim();
+      state.cv.confidence = state.cv.confidence || {};
+      state.cv.confidence[node.dataset.field] = node.value.trim() ? 'high' : 'missing';
+    });
+  }
+
+  function renderPreview() {
+    applyStructuredFields();
+    const options = getContextOptions();
+    options.formatId = state.selectedFormat;
+    $('#cv-output').innerHTML = window.CVOFormatter.generateCVHtml(state.cv, options);
+    const format = window.CVOTemplates.CV_FORMATS.find((item) => item.id === state.selectedFormat);
+    $('#format-description').textContent = format ? `${format.name[lang()] || format.name.es} · ${format.short[lang()] || format.short.es}` : '';
   }
 
   function renderFormats() {
-    const lang = window.CVOi18n.getLanguage();
-    const selected = $('#format-select')?.value || 'ats-simple';
-    $('#format-select').innerHTML = window.CVOTemplates.CV_FORMATS.map((format) => `
-      <option value="${format.id}">${format.name[lang] || format.name.es}</option>`).join('');
-    $('#format-select').value = selected;
-    if (!$('#format-select').value) $('#format-select').value = 'ats-simple';
-    updateFormatDescription();
+    const options = getContextOptions();
+    const recommendations = window.CVOAnalyzer.evaluateFormats(state.cv || {}, options, $('#job-description')?.value || '');
+    $('#format-cards').innerHTML = recommendations.map((format) => {
+      const badgeText = format.rating === 'green' ? 'Recomendado' : format.rating === 'orange' ? 'Posible' : 'Poco recomendable';
+      return `<button type="button" class="format-card ${state.selectedFormat === format.id ? 'active' : ''}" data-format="${format.id}">
+        <span class="badge ${format.rating}">${badgeText}</span>
+        <h3>${format.name[lang()] || format.name.es}</h3>
+        <p>${format.short[lang()] || format.short.es}</p>
+        <p><strong>${format.reason}</strong></p>
+      </button>`;
+    }).join('');
   }
 
+  function selectFormat(id) {
+    state.selectedFormat = id;
+    renderFormats();
+    renderPreview();
+  }
 
-  function renderSalaryControls() {
-    if (!window.CVOSalary) return;
-    const lang = window.CVOi18n.getLanguage();
-    const selectedCountry = $('#salary-country')?.value || 'ES';
-    const selectedCurrency = $('#salary-currency')?.value || '';
-    const selectedRole = $('#salary-role')?.value || 'auto';
-    const selectedSeniority = $('#salary-seniority')?.value || 'auto';
-    const selectedExperience = $('#salary-experience')?.value || 'auto';
+  function recommendFormatOnly() {
+    applyStructuredFields();
+    const recommendation = window.CVOAnalyzer.recommendFormat(state.cv || {}, getContextOptions(), $('#job-description')?.value || '');
+    selectFormat(recommendation.id);
+    setStatus(`Formato recomendado: ${recommendation.name[lang()] || recommendation.name.es}.`, 'success');
+  }
 
-    $('#salary-country').innerHTML = window.CVOSalary.COUNTRIES.map((country) => {
-      const badge = country.supported ? ' · baseline' : ' · assisted';
-      return `<option value="${country.code}" data-currency="${country.currency}">${country.name}${badge}</option>`;
-    }).join('');
+  async function parseFromCurrentText() {
+    const text = $('#manual-cv').value.trim();
+    if (!text) {
+      setStatus('Pega o sube un CV antes de analizar.', 'warning');
+      return;
+    }
+    state.rawText = text;
+    state.cv = window.CVOParser.parseCVText(text);
+    renderStructured();
+    recommendFormatOnly();
+    renderPreview();
+    setStatus('CV interpretado. Revisa los campos con confianza baja.', 'success');
+  }
 
-    $('#salary-currency').innerHTML = window.CVOSalary.CURRENCIES.map((currency) => `<option value="${currency}">${currency}</option>`).join('');
+  async function loadCvFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setStatus('Leyendo archivo...', '');
+    try {
+      const text = await window.CVOParser.extractTextFromFile(file);
+      if (!text || text.length < 20) throw new Error('No text extracted');
+      $('#manual-cv').value = text;
+      await parseFromCurrentText();
+    } catch (error) {
+      console.error(error);
+      setStatus('No se pudo leer bien el archivo. Prueba a pegar el texto o usar modo manual.', 'error');
+    }
+  }
 
-    $('#salary-role').innerHTML = window.CVOSalary.ROLE_OPTIONS.map((role) => `<option value="${role.id}">${role.label[lang] || role.label.es}</option>`).join('');
+  async function loadJdFile(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    $('#job-description').value = (await file.text()).trim();
+  }
 
-    const seniorityOptions = [`<option value="auto">${lang === 'en' ? 'Automatic from CV' : 'Automático desde CV'}</option>`].concat(
-      Object.entries(window.CVOSalary.SENIORITY).map(([value, data]) => `<option value="${value}">${data.label[lang] || data.label.es}</option>`)
-    );
-    $('#salary-seniority').innerHTML = seniorityOptions.join('');
+  function loadDemo() {
+    const demos = window.CVOTemplates.DEMO_EXAMPLES;
+    let demo = demos[state.demoIndex % demos.length];
+    if (demo.id === state.lastDemoId) {
+      state.demoIndex += 1;
+      demo = demos[state.demoIndex % demos.length];
+    }
+    state.lastDemoId = demo.id;
+    state.demoIndex += 1;
 
-    $('#salary-experience').innerHTML = window.CVOSalary.EXPERIENCE_OPTIONS.map((item) => `<option value="${item.value}">${item.label[lang] || item.label.es}</option>`).join('');
+    $('#manual-cv').value = demo.cv;
+    $('#job-description').value = demo.jd;
+    $('#target-role').value = demo.title;
+    $('#sector').value = demo.sector;
+    $('#level').value = demo.level;
+    $('#target-country').value = demo.country;
+    $('#salary-country').value = demo.country;
+    syncSalaryCurrency();
+    $('#salary-role').value = demo.salaryRole || 'auto';
+    $('#salary-seniority').value = demo.level === 'juniorPlus' ? 'juniorPlus' : demo.level;
+    $('#salary-reference-low').value = demo.salaryLow || '';
+    $('#salary-reference-high').value = demo.salaryHigh || '';
+    if (demo.currency) $('#salary-currency').value = demo.currency;
+    parseFromCurrentText();
+    setStatus(`Ejemplo cargado: ${demo.title}`, 'success');
+  }
 
-    $('#salary-country').value = selectedCountry;
-    if (!$('#salary-country').value) $('#salary-country').value = 'ES';
-    const country = window.CVOSalary.getCountry($('#salary-country').value);
-    $('#salary-currency').value = selectedCurrency || country.currency || 'EUR';
-    if (!$('#salary-currency').value) $('#salary-currency').value = 'EUR';
-    $('#salary-role').value = selectedRole;
-    $('#salary-seniority').value = selectedSeniority;
-    $('#salary-experience').value = selectedExperience;
-    updateSalaryModeVisibility();
+  function loadSampleJd() {
+    const demos = window.CVOTemplates.DEMO_EXAMPLES;
+    const demo = demos[state.demoIndex % demos.length];
+    state.demoIndex += 1;
+    $('#job-description').value = demo.jd;
+    $('#target-role').value = demo.title;
+    $('#sector').value = demo.sector;
+    $('#level').value = demo.level;
+    $('#target-country').value = demo.country;
+  }
+
+  function renderTagList(items) {
+    if (!items || !items.length) return '<p class="hint">Sin elementos detectados.</p>';
+    return `<div class="tag-list">${items.slice(0, 18).map((item) => `<span class="tag">${window.CVOAnalyzer.escapeHtml(item)}</span>`).join('')}</div>`;
+  }
+
+  function renderList(title, items) {
+    return `<div class="list-card"><h3>${title}</h3>${items?.length ? `<ul>${items.map((item) => `<li>${window.CVOAnalyzer.escapeHtml(item)}</li>`).join('')}</ul>` : '<p class="hint">Sin incidencias.</p>'}</div>`;
+  }
+
+  function renderAnalysis(analysis) {
+    const output = $('#analysis-output');
+    output.classList.remove('empty');
+    output.innerHTML = `
+      <div class="score-ring" style="--score:${analysis.score}"><span>${analysis.score}</span></div>
+      <div class="metrics-grid">
+        <div class="info-card"><strong>${analysis.completeness}%</strong><span>Completitud</span></div>
+        <div class="info-card"><strong>${analysis.keywordScore}%</strong><span>Matching keywords</span></div>
+        <div class="info-card"><strong>${analysis.metrics.length}</strong><span>Métricas detectadas</span></div>
+      </div>
+      <div class="recommendation-grid">
+        <div class="list-card"><h3>Keywords encontradas</h3>${renderTagList(analysis.foundKeywords)}</div>
+        <div class="list-card"><h3>Keywords faltantes</h3>${renderTagList(analysis.missingKeywords)}</div>
+        ${renderList('Secciones incompletas', analysis.incompleteSections)}
+        ${renderList('Riesgos', analysis.risks)}
+        ${renderList('Recomendaciones', analysis.recommendations)}
+        <div class="list-card"><h3>Bullets mejorables</h3>${analysis.bulletImprovements.length ? `<ul>${analysis.bulletImprovements.map((item) => `<li><strong>${window.CVOAnalyzer.escapeHtml(item.original)}</strong><br>${window.CVOAnalyzer.escapeHtml(item.suggestion)}</li>`).join('')}</ul>` : '<p class="hint">No se han detectado bullets débiles claros.</p>'}</div>
+      </div>
+      <p class="hint"><strong>Formato recomendado:</strong> ${analysis.formatRecommendation.name[lang()] || analysis.formatRecommendation.name.es}.</p>`;
+  }
+
+  function analyzeATS() {
+    applyStructuredFields();
+    const jd = $('#job-description').value.trim();
+    state.jdText = jd;
+    state.analysis = window.CVOAnalyzer.analyze(state.cv || {}, jd, getContextOptions());
+    renderAnalysis(state.analysis);
+    state.selectedFormat = state.analysis.formatRecommendation.id;
+    renderFormats();
+    renderPreview();
+    activateTab('ats');
+  }
+
+  function buildAiPrompt() {
+    applyStructuredFields();
+    const analysis = state.analysis || window.CVOAnalyzer.analyze(state.cv || {}, $('#job-description').value.trim(), getContextOptions());
+    const prompt = window.CVOAnalyzer.buildAiPrompt(state.cv || {}, $('#job-description').value.trim(), analysis, getContextOptions());
+    $('#ai-prompt-output').value = prompt;
+    $('#ai-prompt-output').classList.remove('hidden');
+  }
+
+  function useRawText() {
+    const raw = $('#manual-cv').value.trim();
+    if (!raw) return;
+    state.cv.other = raw;
+    state.cv.confidence = state.cv.confidence || {};
+    state.cv.confidence.other = 'low';
+    renderStructured();
+    renderPreview();
+    setStatus('Texto sin estructurar añadido en una única sección para evitar duplicados.', 'warning');
+  }
+
+  function exportPdf() {
+    const text = window.CVOFormatter.readFinalCvText($('#cv-output'));
+    if (!text) { setStatus('Genera una vista previa antes de exportar.', 'warning'); return; }
+    window.CVOExporter.exportPDF(text, state.cv.name || 'optimized-cv');
+  }
+
+  async function exportDocx() {
+    const text = window.CVOFormatter.readFinalCvText($('#cv-output'));
+    if (!text) { setStatus('Genera una vista previa antes de exportar.', 'warning'); return; }
+    await window.CVOExporter.exportDOCX(text, state.cv.name || 'optimized-cv');
   }
 
   function syncSalaryCurrency() {
+    if (!window.CVOSalary) return;
     const country = window.CVOSalary.getCountry($('#salary-country').value);
-    if (country && country.currency && country.currency !== 'OTHER') $('#salary-currency').value = country.currency;
-    if (!country.supported) $('#salary-mode').value = 'assisted';
-    updateSalaryModeVisibility();
+    if (country?.currency && country.currency !== 'OTHER') $('#salary-currency').value = country.currency;
+    if (!country?.supported) $('#salary-mode').value = 'assisted';
   }
 
-  function updateSalaryModeVisibility() {
-    const country = window.CVOSalary.getCountry($('#salary-country').value);
-    const assisted = $('#salary-mode').value === 'assisted' || !country.supported;
-    $('.manual-market-row')?.classList.toggle('is-muted', !assisted);
-    if (!country.supported && $('#salary-mode').value !== 'assisted') $('#salary-mode').value = 'assisted';
+  function detectSalaryFromCv() {
+    const options = getContextOptions();
+    const roleText = window.CVOAnalyzer.normalize(`${window.CVOAnalyzer.flattenCv(state.cv)} ${options.targetRole}`);
+    if (/soc|siem|security operations/.test(roleText)) $('#salary-role').value = 'soc';
+    else if (/cyber|security|incident|grc/.test(roleText)) $('#salary-role').value = 'cybersecurity';
+    else if (/data|sql|power bi|analytics/.test(roleText)) $('#salary-role').value = 'data';
+    else if (/process|engineer|ingenier|industrial|p&id|desal/.test(roleText)) $('#salary-role').value = 'engineering';
+    else if (/project|consultant|stakeholder|scrum/.test(roleText)) $('#salary-role').value = 'project';
+    else if (/marketing|communication|content|seo/.test(roleText)) $('#salary-role').value = 'business';
+    else $('#salary-role').value = 'auto';
+    setStatus('Familia salarial estimada desde el CV.', 'success');
   }
 
-  function getSalaryInputs() {
-    return {
+  function warningText(code) {
+    const map = {
+      unsupportedCountry: 'País sin baseline interno: usa modo asistido con un rango local real.',
+      baselineIsIndicative: 'Baseline interno aproximado: contrástalo con fuentes salariales locales.',
+      assistedUsesUserRange: 'Modo asistido: la banda se deriva del rango local que has introducido.',
+      missingRole: 'Falta rol objetivo: la estimación será menos precisa.',
+      weakCvImpact: 'ATS bajo: un CV débil puede reducir margen negociador.',
+      customCountry: 'País personalizado: la precisión depende del rango manual.'
+    };
+    return map[code] || code;
+  }
+
+  function calculateSalary() {
+    const inputs = {
       country: $('#salary-country').value,
       currency: $('#salary-currency').value,
       period: $('#salary-period').value,
@@ -123,416 +330,87 @@
       referenceLow: $('#salary-reference-low').value,
       referenceHigh: $('#salary-reference-high').value
     };
+    state.salaryResult = window.CVOSalary.estimate(state.cv || {}, state.analysis, getContextOptions(), inputs);
+    renderSalary(state.salaryResult, inputs);
   }
 
-  function salaryWarningText(key) {
-    const map = {
-      unsupportedCountry: t('salaryWarningUnsupported'),
-      baselineIsIndicative: t('salaryWarningBaseline'),
-      assistedUsesUserRange: t('salaryWarningAssisted'),
-      missingRole: t('salaryWarningMissingRole'),
-      weakCvImpact: t('salaryWarningWeakCv'),
-      customCountry: t('salaryWarningCustomCountry')
-    };
-    return map[key] || key;
-  }
-
-  function renderSalary(result) {
+  function renderSalary(result, inputs) {
     const output = $('#salary-output');
-    const lang = window.CVOi18n.getLanguage();
     output.classList.remove('empty');
-
     if (result.status === 'needsReference') {
-      output.innerHTML = `
-        <div class="salary-needs-reference">
-          <strong>${t('salaryNeedsReference')}</strong>
-          <span>${result.country.name} · ${result.currency} · ${result.roleGroup}</span>
-        </div>`;
+      output.innerHTML = `<div class="list-card"><h3>Falta rango local</h3><p>Este país o combinación requiere modo asistido. Introduce un mínimo y máximo vistos en ofertas comparables.</p></div>`;
       return;
     }
-
-    const source = result.source === 'baseline' ? t('salarySourceBaseline') : t('salarySourceAssisted');
-    const warningList = (result.warnings || []).map((item) => `<li>${salaryWarningText(item)}</li>`).join('');
-    const signals = [];
-    if (result.signals.tools.length) signals.push(`${result.signals.tools.slice(0, 5).join(', ')}`);
-    if (result.signals.certs.length) signals.push(`${result.signals.certs.slice(0, 3).join(', ')}`);
-    if (result.signals.languages.length) signals.push(`${result.signals.languages.join(', ')}`);
-    const seniorityLabel = result.seniorityLabel?.[lang] || result.seniorityLabel?.es || result.seniority;
-
+    const period = result.period || inputs.period || 'annual';
     output.innerHTML = `
-      <div class="salary-summary">
-        <div class="salary-profile-card">
-          <h3>${t('salaryProfileDetected')}</h3>
-          <p class="hint">${result.country.name} · ${result.currency} · ${result.roleGroup} · ${seniorityLabel} · ${Number(result.experienceYears || 0).toFixed(1)} ${lang === 'en' ? 'years' : 'años'}</p>
-          <div class="salary-meta">
-            <span>${t('salaryMethod')}: ${source}</span>
-            <span>Profile factor: ${result.profileFactor.toFixed(2)}×</span>
-            ${signals.map((item) => `<span>${window.CVOAnalyzer.escapeHtml(item)}</span>`).join('')}
-          </div>
-        </div>
-        <div class="salary-disclaimer-card">
-          <h3>${t('salaryDisclaimerTitle')}</h3>
-          <p class="hint">${t('salaryDisclaimer')}</p>
-        </div>
+      <div class="salary-bands">
+        <div class="salary-band red"><strong>Rojo · bajo mercado</strong><div class="amount">${window.CVOSalary.formatRange(result.ranges.red, result.currency, period)}</div><p>Evitar salvo aprendizaje, urgencia o beneficios extraordinarios.</p></div>
+        <div class="salary-band orange"><strong>Naranja · razonable</strong><div class="amount">${window.CVOSalary.formatRange(result.ranges.orange, result.currency, period)}</div><p>Banda defendible si el perfil encaja de forma parcial o normal.</p></div>
+        <div class="salary-band green"><strong>Verde · recomendado</strong><div class="amount">${window.CVOSalary.formatRange(result.ranges.green, result.currency, period)}</div><p>Objetivo de negociación si hay buen matching, herramientas y evidencias.</p></div>
       </div>
-      <div class="salary-levels">
-        <div class="salary-band red">
-          <strong>${t('salaryLowBand')}</strong>
-          <p class="range">${window.CVOSalary.formatRange(result.ranges.red, result.currency, result.period)}</p>
-          <p>${t('salaryLowBandText')}</p>
-        </div>
-        <div class="salary-band orange">
-          <strong>${t('salaryContextBand')}</strong>
-          <p class="range">${window.CVOSalary.formatRange(result.ranges.orange, result.currency, result.period)}</p>
-          <p>${t('salaryContextBandText')}</p>
-        </div>
-        <div class="salary-band green">
-          <strong>${t('salaryTargetBand')}</strong>
-          <p class="range">${window.CVOSalary.formatRange(result.ranges.green, result.currency, result.period)}</p>
-          <p>${t('salaryTargetBandText')}</p>
-        </div>
-      </div>
-      ${warningList ? `<ul class="salary-warning-list">${warningList}</ul>` : ''}
-    `;
-  }
-
-  function calculateSalary() {
-    applyStructuredFields();
-    const options = getOptions();
-    if (!state.analysis) {
-      state.analysis = window.CVOAnalyzer.analyze(state.cv, $('#job-description').value.trim(), options);
-      renderAnalysis(state.analysis);
-    }
-    state.salaryResult = window.CVOSalary.estimate(state.cv, state.analysis, options, getSalaryInputs());
-    renderSalary(state.salaryResult);
-    setStatus(state.salaryResult.status === 'ok' ? t('salaryCalculated') : t('salaryNeedsReference'), state.salaryResult.status === 'ok' ? 'success' : 'warning');
-  }
-
-  function detectSalaryFromCv() {
-    applyStructuredFields();
-    $('#salary-role').value = 'auto';
-    $('#salary-seniority').value = 'auto';
-    $('#salary-experience').value = 'auto';
-    calculateSalary();
-  }
-
-  function updateFormatDescription() {
-    const lang = window.CVOi18n.getLanguage();
-    const format = window.CVOTemplates.CV_FORMATS.find((item) => item.id === $('#format-select').value);
-    $('#format-description').textContent = format ? format.short[lang] : '';
-    $('#photo-warning').textContent = window.CVOFormatter.photoPolicyMessage($('#format-select').value, lang);
-    $('#photo-warning').classList.toggle('warning', ['uk-ireland', 'ats-simple', 'hybrid-technical', 'technical-projects'].includes($('#format-select').value));
-  }
-
-  function renderStructured() {
-    $('#structured-fields').innerHTML = window.CVOFormatter.renderStructuredFields(state.cv || {});
-  }
-
-  function applyStructuredFields() {
-    state.cv = window.CVOFormatter.readStructuredFields($('#structured-fields'), state.cv);
-    setStatus(t('fieldsSaved'), 'success');
-  }
-
-  function renderAnalysis(analysis) {
-    const lang = window.CVOi18n.getLanguage();
-    const htmlList = (title, items) => `<div class="list-card"><h3>${title}</h3>${items && items.length ? `<ul>${items.map((item) => `<li>${window.CVOAnalyzer.escapeHtml(item)}</li>`).join('')}</ul>` : '<p class="hint">—</p>'}</div>`;
-    const tagList = (items) => `<ul class="tag-list">${(items || []).slice(0, 22).map((item) => `<li>${window.CVOAnalyzer.escapeHtml(item)}</li>`).join('')}</ul>`;
-    const bulletHtml = (analysis.bulletImprovements || []).slice(0, 6).map((item) => `
-      <li><strong>${window.CVOAnalyzer.escapeHtml(item.original)}</strong><br><span>${window.CVOAnalyzer.escapeHtml(item.improved)}</span></li>
-    `).join('');
-    const formatName = analysis.formatRecommendation.name[lang] || analysis.formatRecommendation.name.es;
-    const explanation = analysis.formatRecommendation.explanation[lang] || analysis.formatRecommendation.explanation.es;
-
-    $('#analysis-output').classList.remove('empty');
-    $('#analysis-output').innerHTML = `
-      <div class="score-wrap">
-        <div class="score-circle" style="--score:${analysis.score}">${analysis.score}</div>
-        <div>
-          <h3>${t('score')}</h3>
-          <p class="hint">${analysis.score >= 80 ? 'Strong ATS compatibility.' : analysis.score >= 60 ? 'Good base; adapt keywords and impact.' : 'Needs clearer sections, keywords and quantified achievements.'}</p>
-          <p><strong>${t('formatRecommendation')}:</strong> ${formatName}</p>
-          <p class="hint">${explanation}</p>
-        </div>
-      </div>
-      <div class="metric-grid">
-        <div class="metric-card"><strong>${analysis.foundKeywords.length}</strong><span>${t('found')}</span></div>
-        <div class="metric-card"><strong>${analysis.missingKeywords.length}</strong><span>${t('missing')}</span></div>
-        <div class="metric-card"><strong>${analysis.metrics.length}</strong><span>${t('metrics')}</span></div>
-      </div>
-      <div class="recommendation-grid">
-        <div class="list-card"><h3>${t('found')}</h3>${tagList(analysis.foundKeywords)}</div>
-        <div class="list-card"><h3>${t('missing')}</h3>${tagList(analysis.missingKeywords)}</div>
-        ${htmlList(t('incomplete'), analysis.incompleteSections)}
-        ${htmlList(t('risks'), analysis.risks)}
-        ${htmlList(t('recommendations'), analysis.recommendations)}
-        <div class="list-card"><h3>${t('bulletImprovements')}</h3>${bulletHtml ? `<ul>${bulletHtml}</ul>` : '<p class="hint">No weak bullets detected.</p>'}</div>
-      </div>
-    `;
-    renderLinkedIn(analysis.linkedin);
-  }
-
-  function renderLinkedIn(linkedin) {
-    $('#linkedin-output').classList.remove('empty');
-    $('#linkedin-output').innerHTML = `
-      <div class="linkedin-section"><h3>Headline</h3><p>${window.CVOAnalyzer.escapeHtml(linkedin.headline)}</p></div>
-      <div class="linkedin-section"><h3>About</h3><p>${window.CVOAnalyzer.escapeHtml(linkedin.about)}</p></div>
-      <div class="linkedin-section"><h3>Skills</h3><p>${window.CVOAnalyzer.escapeHtml(linkedin.skills.join(' · '))}</p></div>
-      <div class="linkedin-section"><h3>Featured projects</h3><ul>${linkedin.featured.map((item) => `<li>${window.CVOAnalyzer.escapeHtml(item)}</li>`).join('')}</ul></div>
-      <div class="linkedin-section"><h3>Recruiter pitch</h3><p>${window.CVOAnalyzer.escapeHtml(linkedin.recruiterPitch)}</p></div>
-    `;
-  }
-
-  async function parseCvFromInputs() {
-    const manual = $('#manual-cv').value.trim();
-    if (!manual) {
-      setStatus(t('emptyCv'), 'warning');
-      return;
-    }
-    state.cvText = manual;
-    state.cv = window.CVOParser.parseCVText(manual);
-    renderStructured();
-    setStatus(t('parsedOk'), 'success');
-  }
-
-  function analyzeCurrentCv() {
-    applyStructuredFields();
-    state.jdText = $('#job-description').value.trim();
-    state.analysis = window.CVOAnalyzer.analyze(state.cv, state.jdText, getOptions());
-    renderAnalysis(state.analysis);
-    $('#format-select').value = state.analysis.formatRecommendation.id;
-    updateFormatDescription();
-    setStatus(t('analysisDone'), 'success');
-  }
-
-  function recommendFormatOnly() {
-    applyStructuredFields();
-    const recommendation = window.CVOAnalyzer.recommendFormat(state.cv, getOptions());
-    $('#format-select').value = recommendation.id;
-    updateFormatDescription();
-    const lang = window.CVOi18n.getLanguage();
-    setStatus(`${t('formatRecommendation')}: ${recommendation.name[lang]}. ${recommendation.explanation[lang]}`, 'success');
-  }
-
-  function generateCv() {
-    applyStructuredFields();
-    const options = getOptions();
-    const html = window.CVOFormatter.generateCVHtml(state.cv, options);
-    $('#cv-output').innerHTML = html;
-    if (!state.analysis) {
-      state.analysis = window.CVOAnalyzer.analyze(state.cv, $('#job-description').value.trim(), options);
-      renderAnalysis(state.analysis);
-    }
-    setStatus(t('cvGenerated'), 'success');
-  }
-
-  function loadDemo() {
-    const examples = window.CVOTemplates.DEMO_EXAMPLES;
-    let example = examples[state.demoIndex % examples.length];
-    if (example.id === state.lastDemoId) {
-      state.demoIndex += 1;
-      example = examples[state.demoIndex % examples.length];
-    }
-    state.lastDemoId = example.id;
-    state.demoIndex += 1;
-    state.cvText = example.cv;
-    state.jdText = example.jd;
-    $('#manual-cv').value = example.cv;
-    $('#job-description').value = example.jd;
-    state.cv = window.CVOParser.parseCVText(example.cv);
-    renderStructured();
-    const roleMap = {
-      'soc-junior': 'SOC Analyst',
-      'grc-junior': 'GRC Analyst',
-      'threat-analyst': 'Threat Analyst',
-      'detection-engineer': 'Detection Engineer Junior',
-      'cloud-security': 'Cloud Security Junior'
-    };
-    $$('#role-options input').forEach((input) => {
-      input.checked = input.value === roleMap[example.id];
-    });
-    setStatus(`${t('demoLoaded')} ${example.title}`, 'success');
-  }
-
-  async function loadCvFile(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setStatus('Reading file...', '');
-    try {
-      const text = await window.CVOParser.extractTextFromFile(file);
-      if (!text || text.length < 20) throw new Error('Empty extracted text');
-      $('#manual-cv').value = text;
-      state.cvText = text;
-      state.cv = window.CVOParser.parseCVText(text);
-      renderStructured();
-      setStatus(t('parsedOk'), 'success');
-    } catch (error) {
-      console.error(error);
-      setStatus(t('parseError'), 'warning');
-    }
-  }
-
-  async function loadJdFile(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      $('#job-description').value = text.trim();
-    } catch (error) {
-      console.error(error);
-      setStatus(t('parseError'), 'warning');
-    }
-  }
-
-  function loadSampleJdOnly() {
-    const currentExample = window.CVOTemplates.DEMO_EXAMPLES[(state.demoIndex + 1) % window.CVOTemplates.DEMO_EXAMPLES.length];
-    $('#job-description').value = currentExample.jd;
-    state.demoIndex += 1;
+      <div class="salary-notes">
+        <p><strong>Fuente de cálculo:</strong> ${result.source === 'baseline' ? 'tabla interna de mercado aproximado' : 'rango local introducido por el usuario'} · <strong>seniority:</strong> ${result.seniorityLabel?.[lang()] || result.seniority} · <strong>factor perfil:</strong> ${result.profileFactor.toFixed(2)}.</p>
+        <ul>${(result.warnings || []).map((warning) => `<li>${warningText(warning)}</li>`).join('')}</ul>
+        <p>Estimación orientativa. No sustituye fuentes salariales locales ni negociación real.</p>
+      </div>`;
   }
 
   function clearAll() {
-    state.cvText = '';
-    state.jdText = '';
-    state.cv = {};
-    state.analysis = null;
-    state.salaryResult = null;
-    state.photoDataUrl = '';
-    $('#manual-cv').value = '';
-    $('#job-description').value = '';
-    $('#structured-fields').innerHTML = '';
-    $('#analysis-output').className = 'analysis-output empty';
-    $('#analysis-output').textContent = t('analysisPlaceholder');
-    $('#linkedin-output').className = 'linkedin-output empty';
-    $('#linkedin-output').textContent = t('linkedinPlaceholder');
-    $('#salary-output').className = 'salary-output empty';
-    $('#salary-output').textContent = t('salaryPlaceholder');
-    $('#cv-output').innerHTML = '';
-    $('#photo-preview').innerHTML = '';
-    $('#include-photo').checked = false;
-    $('#ai-prompt-output').classList.add('hidden');
-    $('#ai-prompt-output').value = '';
-    setStatus('', '');
-  }
-
-  function readPhoto(event) {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      state.photoDataUrl = reader.result;
-      $('#photo-preview').innerHTML = `<img src="${state.photoDataUrl}" alt="Profile preview" />`;
-      $('#include-photo').checked = true;
-      updateFormatDescription();
-    };
-    reader.readAsDataURL(file);
-  }
-
-  function buildAiPrompt() {
-    applyStructuredFields();
-    const options = getOptions();
-    const analysis = state.analysis || window.CVOAnalyzer.analyze(state.cv, $('#job-description').value.trim(), options);
-    const prompt = window.CVOAnalyzer.buildAiPrompt(state.cv, $('#job-description').value.trim(), analysis, options);
-    $('#ai-prompt-output').value = prompt;
-    $('#ai-prompt-output').classList.remove('hidden');
-    setStatus(t('aiPromptReady'), 'success');
-  }
-
-  async function enhanceWithAI() {
-    const apiKey = $('#ai-key').value.trim();
-    const endpoint = $('#ai-endpoint').value.trim();
-    if (!apiKey || !endpoint) {
-      setStatus(t('aiNeedsKey'), 'warning');
-      return;
-    }
-    buildAiPrompt();
-    try {
-      $('#ai-enhance').disabled = true;
-      const result = await window.CVOAnalyzer.enhanceWithExternalAI($('#ai-prompt-output').value, apiKey, endpoint);
-      if (result) {
-        $('#ai-prompt-output').value = result;
-        $('#ai-prompt-output').classList.remove('hidden');
-        setStatus(t('externalMode'), 'success');
-      }
-    } catch (error) {
-      console.error(error);
-      setStatus(t('aiFailed'), 'warning');
-    } finally {
-      $('#ai-enhance').disabled = false;
-      $('#ai-key').value = '';
-    }
-  }
-
-  function exportPdf() {
-    const text = window.CVOFormatter.readFinalCvText($('#cv-output'));
-    if (!text) {
-      setStatus(t('noFinalCv'), 'warning');
-      return;
-    }
-    window.CVOExporter.exportPDF(text, state.cv.name || 'optimized-cv');
-    setStatus(t('exportReady'), 'success');
-  }
-
-  async function exportDocx() {
-    const text = window.CVOFormatter.readFinalCvText($('#cv-output'));
-    if (!text) {
-      setStatus(t('noFinalCv'), 'warning');
-      return;
-    }
-    try {
-      await window.CVOExporter.exportDOCX(text, state.cv.name || 'optimized-cv');
-      setStatus(t('exportReady'), 'success');
-    } catch (error) {
-      console.warn(error);
-      setStatus(t('exportReady'), 'warning');
-    }
-  }
-
-  function changeLanguage(lang) {
-    window.CVOi18n.setLanguage(lang);
-    renderFormats();
-    renderSalaryControls();
-    updateFormatDescription();
-    if ($('#analysis-output').classList.contains('empty')) $('#analysis-output').textContent = t('analysisPlaceholder');
-    if ($('#linkedin-output').classList.contains('empty')) $('#linkedin-output').textContent = t('linkedinPlaceholder');
-    if ($('#salary-output').classList.contains('empty')) $('#salary-output').textContent = t('salaryPlaceholder');
-    if (state.salaryResult) renderSalary(state.salaryResult);
+    state.cv = {}; state.rawText = ''; state.jdText = ''; state.analysis = null; state.selectedFormat = 'ats-simple'; state.salaryResult = null;
+    $('#manual-cv').value = ''; $('#job-description').value = ''; $('#target-role').value = '';
+    $('#structured-fields').innerHTML = ''; $('#cv-output').innerHTML = ''; $('#ai-prompt-output').value = ''; $('#ai-prompt-output').classList.add('hidden');
+    $('#analysis-output').className = 'analysis-output empty'; $('#analysis-output').textContent = 'Carga un CV y una oferta para ver el análisis.';
+    $('#salary-output').className = 'salary-output empty'; $('#salary-output').textContent = 'Introduce el contexto y calcula para ver las bandas.';
+    renderFormats(); setStatus('', '');
   }
 
   function bindEvents() {
-    $('#lang-en').addEventListener('click', () => changeLanguage('en'));
+    $$('.module-card').forEach((button) => button.addEventListener('click', () => activateTab(button.dataset.tab)));
+    $$('[data-go-tab]').forEach((button) => button.addEventListener('click', () => activateTab(button.dataset.goTab)));
+    $('#theme-toggle').addEventListener('click', () => document.body.classList.toggle('dark'));
     $('#lang-es').addEventListener('click', () => changeLanguage('es'));
-    $('#theme-toggle').addEventListener('click', () => document.body.classList.toggle('light'));
+    $('#lang-en').addEventListener('click', () => changeLanguage('en'));
     $('#cv-file').addEventListener('change', loadCvFile);
     $('#jd-file').addEventListener('change', loadJdFile);
-    $('#parse-cv').addEventListener('click', parseCvFromInputs);
-    $('#save-fields').addEventListener('click', applyStructuredFields);
+    $('#parse-cv').addEventListener('click', parseFromCurrentText);
     $('#load-demo').addEventListener('click', loadDemo);
-    $('#sample-jd').addEventListener('click', loadSampleJdOnly);
     $('#clear-all').addEventListener('click', clearAll);
-    $('#analyze').addEventListener('click', analyzeCurrentCv);
+    $('#save-fields').addEventListener('click', () => { applyStructuredFields(); renderPreview(); setStatus('Cambios aplicados.', 'success'); });
+    $('#use-raw').addEventListener('click', useRawText);
+    $('#regenerate-preview').addEventListener('click', renderPreview);
     $('#recommend-format').addEventListener('click', recommendFormatOnly);
-    $('#generate-cv').addEventListener('click', generateCv);
+    $('#format-cards').addEventListener('click', (event) => {
+      const card = event.target.closest('[data-format]');
+      if (card) selectFormat(card.dataset.format);
+    });
+    $('#analyze-ats').addEventListener('click', analyzeATS);
+    $('#sample-jd').addEventListener('click', loadSampleJd);
+    $('#build-ai-prompt').addEventListener('click', buildAiPrompt);
     $('#export-pdf').addEventListener('click', exportPdf);
     $('#export-docx').addEventListener('click', exportDocx);
-    $('#format-select').addEventListener('change', updateFormatDescription);
-    $('#destination').addEventListener('change', updateFormatDescription);
-    $('#photo-file').addEventListener('change', readPhoto);
-    $('#build-ai-prompt').addEventListener('click', buildAiPrompt);
-    $('#ai-enhance').addEventListener('click', enhanceWithAI);
     $('#salary-country').addEventListener('change', syncSalaryCurrency);
-    $('#salary-mode').addEventListener('change', updateSalaryModeVisibility);
-    $('#calculate-salary').addEventListener('click', calculateSalary);
     $('#salary-from-cv').addEventListener('click', detectSalaryFromCv);
+    $('#calculate-salary').addEventListener('click', calculateSalary);
+    ['sector', 'level', 'target-country', 'cv-language'].forEach((id) => {
+      $(`#${id}`)?.addEventListener('change', () => { renderFormats(); renderPreview(); });
+    });
+  }
+
+  function changeLanguage(nextLang) {
+    window.CVOi18n.setLanguage(nextLang);
+    fillContextControls();
+    fillSalaryControls();
+    renderFormats();
+    renderPreview();
   }
 
   function init() {
-    renderRoles();
+    fillContextControls();
+    fillSalaryControls();
     renderFormats();
-    renderSalaryControls();
     bindEvents();
     window.CVOi18n.setLanguage('es');
-    $('#analysis-output').textContent = t('analysisPlaceholder');
-    $('#linkedin-output').textContent = t('linkedinPlaceholder');
-    $('#salary-output').textContent = t('salaryPlaceholder');
+    $('#cv-output').innerHTML = '<p class="hint">Carga un CV para generar una vista previa editable.</p>';
   }
 
   document.addEventListener('DOMContentLoaded', init);

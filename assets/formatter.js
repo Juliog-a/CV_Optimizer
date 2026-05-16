@@ -1,201 +1,89 @@
 (function (window) {
   'use strict';
 
-  const FIELD_CONFIG = [
-    ['name', 'Nombre / Name', 'text', false],
-    ['email', 'Email', 'text', false],
-    ['phone', 'Teléfono / Phone', 'text', false],
-    ['linkedin', 'LinkedIn', 'text', false],
-    ['github', 'GitHub', 'text', false],
-    ['portfolio', 'Portfolio', 'text', false],
-    ['profile', 'Perfil profesional / Professional profile', 'textarea', true],
-    ['skills', 'Competencias técnicas / Skills', 'textarea', true],
-    ['experience', 'Experiencia laboral / Work experience', 'textarea', true],
-    ['education', 'Educación / Education', 'textarea', true],
-    ['certifications', 'Certificaciones / Certifications', 'textarea', true],
-    ['projects', 'Proyectos / Projects', 'textarea', true],
-    ['languages', 'Idiomas / Languages', 'textarea', true],
-    ['awards', 'Premios / Awards', 'textarea', true]
-  ];
+  const SECTION_ORDER = ['profile', 'skills', 'experience', 'projects', 'education', 'certifications', 'languages', 'awards', 'other'];
+  const SECTION_TITLES = {
+    es: {
+      profile: 'Perfil profesional', skills: 'Competencias', experience: 'Experiencia profesional', projects: 'Proyectos', education: 'Educación', certifications: 'Certificaciones', languages: 'Idiomas', awards: 'Premios y reconocimientos', other: 'Otros'
+    },
+    en: {
+      profile: 'Professional summary', skills: 'Skills', experience: 'Work experience', projects: 'Projects', education: 'Education', certifications: 'Certifications', languages: 'Languages', awards: 'Awards', other: 'Additional information'
+    }
+  };
 
   function escapeHtml(value) {
-    return window.CVOAnalyzer.escapeHtml(value);
+    return window.CVOAnalyzer ? window.CVOAnalyzer.escapeHtml(value) : String(value || '').replace(/[&<>"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[char]));
   }
 
-  function lines(value) {
-    return String(value || '').split('\n').map((line) => line.trim()).filter(Boolean);
+  function isReasonableSection(value, raw) {
+    const text = String(value || '').trim();
+    if (!text) return false;
+    if (text.length > 6000) return false;
+    if (raw && text.length > raw.length * 0.72) return false;
+    return true;
   }
 
-  function listHtml(value) {
-    const items = lines(value);
-    if (!items.length) return '';
-    return `<ul>${items.map((item) => `<li>${escapeHtml(item.replace(/^[•\-–*]\s*/, ''))}</li>`).join('')}</ul>`;
+  function normalizeLines(value) {
+    return String(value || '')
+      .replace(/\r/g, '\n')
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
   }
 
-  function paragraphHtml(value) {
-    return lines(value).map((line) => `<p>${escapeHtml(line)}</p>`).join('');
-  }
-
-  function renderStructuredFields(cv) {
-    return FIELD_CONFIG.map(([key, label, type, full]) => {
-      const value = escapeHtml(cv[key] || '');
-      const control = type === 'textarea'
-        ? `<textarea id="field-${key}" data-field="${key}" rows="5">${value}</textarea>`
-        : `<input id="field-${key}" data-field="${key}" type="text" value="${value}" />`;
-      return `<div class="field-card ${full ? 'field-full' : ''}"><label for="field-${key}">${label}</label>${control}</div>`;
-    }).join('');
-  }
-
-  function readStructuredFields(container, fallback) {
-    const result = Object.assign({}, fallback || {});
-    container.querySelectorAll('[data-field]').forEach((node) => {
-      result[node.dataset.field] = node.value.trim();
-    });
-    return result;
-  }
-
-  function contactLine(cv, includePhone) {
-    return [
-      cv.email,
-      includePhone ? cv.phone : '',
-      cv.linkedin,
-      cv.github,
-      cv.portfolio
-    ].filter(Boolean).map(escapeHtml).join(' | ');
-  }
-
-  function translatedSections(lang) {
-    if (lang === 'en') {
-      return {
-        profile: 'Professional Profile', skills: 'Technical Skills', experience: 'Professional Experience', education: 'Education', certifications: 'Certifications', projects: 'Projects', languages: 'Languages', awards: 'Awards'
-      };
+  function renderSectionContent(value) {
+    const lines = normalizeLines(value);
+    if (!lines.length) return '';
+    const bulletLike = lines.filter((line) => /^[•\-*]/.test(line)).length >= Math.max(1, Math.ceil(lines.length * 0.35));
+    if (bulletLike) {
+      return `<ul>${lines.map((line) => `<li>${escapeHtml(line.replace(/^[•\-*]\s*/, ''))}</li>`).join('')}</ul>`;
     }
-    return {
-      profile: 'Perfil profesional', skills: 'Competencias técnicas', experience: 'Experiencia profesional', education: 'Educación', certifications: 'Certificaciones', projects: 'Proyectos', languages: 'Idiomas', awards: 'Premios y reconocimientos'
-    };
+    if (lines.length === 1) return `<p>${escapeHtml(lines[0])}</p>`;
+    return lines.map((line) => /^[•\-*]/.test(line)
+      ? `<ul><li>${escapeHtml(line.replace(/^[•\-*]\s*/, ''))}</li></ul>`
+      : `<p>${escapeHtml(line)}</p>`).join('');
   }
 
-  function headerHtml(cv, options, className) {
-    const includePhoto = options.includePhoto && options.photoDataUrl && !['uk', 'ats'].includes(className);
-    const contact = contactLine(cv, className !== 'uk');
-    const headerContent = `<div><h1>${escapeHtml(cv.name || (options.lang === 'en' ? 'Your Name' : 'Tu nombre'))}</h1><p class="contact">${contact}</p></div>`;
-    if (!includePhoto) return headerContent;
-    return `<div class="cv-header-with-photo">${headerContent}<img class="cv-photo" src="${options.photoDataUrl}" alt="Profile photo" /></div>`;
-  }
-
-  function renderAts(cv, options) {
-    const s = translatedSections(options.lang);
-    return `<article class="cv-template ats">
-      ${headerHtml(cv, options, 'ats')}
-      ${cv.profile ? `<h2>${s.profile}</h2>${paragraphHtml(cv.profile)}` : ''}
-      ${cv.skills ? `<h2>${s.skills}</h2>${paragraphHtml(cv.skills)}` : ''}
-      ${cv.experience ? `<h2>${s.experience}</h2>${listHtml(cv.experience) || paragraphHtml(cv.experience)}` : ''}
-      ${cv.projects ? `<h2>${s.projects}</h2>${listHtml(cv.projects) || paragraphHtml(cv.projects)}` : ''}
-      ${cv.education ? `<h2>${s.education}</h2>${paragraphHtml(cv.education)}` : ''}
-      ${cv.certifications ? `<h2>${s.certifications}</h2>${listHtml(cv.certifications) || paragraphHtml(cv.certifications)}` : ''}
-      ${cv.languages ? `<h2>${s.languages}</h2>${paragraphHtml(cv.languages)}` : ''}
-    </article>`;
-  }
-
-  function renderHybrid(cv, options) {
-    const s = translatedSections(options.lang);
-    return `<article class="cv-template hybrid">
-      ${headerHtml(cv, options, 'hybrid')}
-      <h2>${s.profile}</h2>${paragraphHtml(cv.profile || '')}
-      <h2>${s.skills}</h2>${paragraphHtml(cv.skills || '')}
-      <h2>${s.experience}</h2>${listHtml(cv.experience) || paragraphHtml(cv.experience || '')}
-      ${cv.projects ? `<h2>${s.projects}</h2>${listHtml(cv.projects) || paragraphHtml(cv.projects)}` : ''}
-      <h2>${s.education}</h2>${paragraphHtml(cv.education || '')}
-      ${cv.certifications ? `<h2>${s.certifications}</h2>${listHtml(cv.certifications) || paragraphHtml(cv.certifications)}` : ''}
-      ${cv.languages ? `<h2>${s.languages}</h2>${paragraphHtml(cv.languages)}` : ''}
-    </article>`;
-  }
-
-  function renderProject(cv, options) {
-    const s = translatedSections(options.lang);
-    const projectBlocks = lines(cv.projects).map((project) => `<div class="project-block"><p>${escapeHtml(project)}</p></div>`).join('');
-    return `<article class="cv-template project">
-      ${headerHtml(cv, options, 'project')}
-      ${cv.profile ? `<h2>${s.profile}</h2>${paragraphHtml(cv.profile)}` : ''}
-      ${cv.skills ? `<h2>${s.skills}</h2>${paragraphHtml(cv.skills)}` : ''}
-      ${projectBlocks ? `<h2>${s.projects}</h2>${projectBlocks}` : ''}
-      ${cv.experience ? `<h2>${s.experience}</h2>${listHtml(cv.experience) || paragraphHtml(cv.experience)}` : ''}
-      ${cv.education ? `<h2>${s.education}</h2>${paragraphHtml(cv.education)}` : ''}
-      ${cv.certifications ? `<h2>${s.certifications}</h2>${listHtml(cv.certifications) || paragraphHtml(cv.certifications)}` : ''}
-    </article>`;
-  }
-
-  function renderUk(cv, options) {
-    const s = translatedSections('en');
-    return `<article class="cv-template uk">
-      ${headerHtml(cv, Object.assign({}, options, { lang: 'en', includePhoto: false }), 'uk')}
-      ${cv.profile ? `<h2>${s.profile}</h2>${paragraphHtml(cv.profile)}` : ''}
-      ${cv.skills ? `<h2>${s.skills}</h2>${paragraphHtml(cv.skills)}` : ''}
-      ${cv.experience ? `<h2>${s.experience}</h2>${listHtml(cv.experience) || paragraphHtml(cv.experience)}` : ''}
-      ${cv.projects ? `<h2>${s.projects}</h2>${listHtml(cv.projects) || paragraphHtml(cv.projects)}` : ''}
-      ${cv.education ? `<h2>${s.education}</h2>${paragraphHtml(cv.education)}` : ''}
-      ${cv.certifications ? `<h2>${s.certifications}</h2>${listHtml(cv.certifications) || paragraphHtml(cv.certifications)}` : ''}
-      ${cv.languages ? `<h2>${s.languages}</h2>${paragraphHtml(cv.languages)}` : ''}
-    </article>`;
-  }
-
-  function renderAcademic(cv, options) {
-    const s = translatedSections(options.lang);
-    return `<article class="cv-template academic">
-      ${headerHtml(cv, options, 'academic')}
-      ${cv.profile ? `<h2>${s.profile}</h2>${paragraphHtml(cv.profile)}` : ''}
-      ${cv.education ? `<h2>${s.education}</h2>${paragraphHtml(cv.education)}` : ''}
-      ${cv.projects ? `<h2>${s.projects}</h2>${listHtml(cv.projects) || paragraphHtml(cv.projects)}` : ''}
-      ${cv.certifications ? `<h2>${s.certifications}</h2>${listHtml(cv.certifications) || paragraphHtml(cv.certifications)}` : ''}
-      ${cv.experience ? `<h2>${s.experience}</h2>${listHtml(cv.experience) || paragraphHtml(cv.experience)}` : ''}
-      ${cv.skills ? `<h2>${s.skills}</h2>${paragraphHtml(cv.skills)}` : ''}
-      ${cv.languages ? `<h2>${s.languages}</h2>${paragraphHtml(cv.languages)}` : ''}
-      ${cv.awards ? `<h2>${s.awards}</h2>${listHtml(cv.awards) || paragraphHtml(cv.awards)}` : ''}
-    </article>`;
-  }
-
-  function renderVisual(cv, options) {
-    const s = translatedSections(options.lang);
-    return `<article class="cv-template hybrid visual">
-      ${headerHtml(cv, options, 'visual')}
-      ${cv.profile ? `<h2>${s.profile}</h2>${paragraphHtml(cv.profile)}` : ''}
-      ${cv.skills ? `<h2>${s.skills}</h2>${paragraphHtml(cv.skills)}` : ''}
-      ${cv.projects ? `<h2>${s.projects}</h2>${listHtml(cv.projects) || paragraphHtml(cv.projects)}` : ''}
-      ${cv.experience ? `<h2>${s.experience}</h2>${listHtml(cv.experience) || paragraphHtml(cv.experience)}` : ''}
-      ${cv.education ? `<h2>${s.education}</h2>${paragraphHtml(cv.education)}` : ''}
-    </article>`;
+  function contactLine(cv, options) {
+    const items = [];
+    if (cv.email) items.push(cv.email);
+    if (cv.phone && options.formatId !== 'uk-ireland') items.push(cv.phone);
+    if (cv.linkedin) items.push(cv.linkedin);
+    if (cv.github) items.push(cv.github);
+    if (cv.portfolio) items.push(cv.portfolio);
+    return items.map(escapeHtml).join(' · ');
   }
 
   function generateCVHtml(cv, options) {
-    const format = window.CVOTemplates.CV_FORMATS.find((item) => item.id === options.formatId) || window.CVOTemplates.CV_FORMATS[2];
-    const template = format.template;
-    if (template === 'hybrid') return renderHybrid(cv, options);
-    if (template === 'project') return renderProject(cv, options);
-    if (template === 'uk') return renderUk(cv, options);
-    if (template === 'academic') return renderAcademic(cv, options);
-    if (template === 'visual') return renderVisual(cv, options);
-    return renderAts(cv, options);
+    const lang = options?.lang || 'es';
+    const formatId = options?.formatId || 'ats-simple';
+    const templateClass = `cv-${formatId}`.replace(/[^a-z0-9_-]/gi, '-');
+    const raw = cv?.raw || '';
+    const sections = SECTION_ORDER
+      .filter((key) => isReasonableSection(cv?.[key], raw))
+      .map((key) => `<section><h2>${escapeHtml((SECTION_TITLES[lang] || SECTION_TITLES.es)[key])}</h2>${renderSectionContent(cv[key])}</section>`)
+      .join('');
+
+    const name = cv?.name || (lang === 'en' ? 'Name not detected' : 'Nombre no detectado');
+    const contact = contactLine(cv || {}, options || {});
+    return `<article class="cv-document ${templateClass}" data-format="${escapeHtml(formatId)}">
+      <header>
+        <h1>${escapeHtml(name)}</h1>
+        ${contact ? `<p class="contact">${contact}</p>` : ''}
+      </header>
+      ${sections || `<p>${lang === 'en' ? 'No structured sections detected. Complete the manual editor before exporting.' : 'No se han detectado secciones estructuradas. Completa el editor manual antes de exportar.'}</p>`}
+    </article>`;
   }
 
-  function photoPolicyMessage(formatId, lang) {
-    const format = window.CVOTemplates.CV_FORMATS.find((item) => item.id === formatId);
-    const policy = format?.photo || 'optional';
-    if (policy === 'avoid') return lang === 'en' ? 'Avoid photo for this format, especially UK/Ireland and international ATS.' : 'Para este formato se recomienda no incluir foto, especialmente UK/Irlanda y ATS internacional.';
-    if (policy === 'not-recommended') return lang === 'en' ? 'Photo is not recommended for this format, but you can include it if needed.' : 'Para este formato no se recomienda incluir foto. Puedes incluirla igualmente si quieres.';
-    if (policy === 'allowed') return lang === 'en' ? 'Photo can fit this format, but ATS compatibility may decrease.' : 'La foto puede encajar en este formato, aunque puede reducir compatibilidad ATS.';
-    return lang === 'en' ? 'Photo is optional. For international technical roles, no photo is usually better.' : 'La foto es opcional. En perfiles técnicos internacionales suele ser mejor no incluirla.';
-  }
-
-  function readFinalCvText(container) {
-    return (container.innerText || '').replace(/\n{3,}/g, '\n\n').trim();
+  function readFinalCvText(node) {
+    return String(node?.innerText || node?.textContent || '').replace(/\n{3,}/g, '\n\n').trim();
   }
 
   window.CVOFormatter = {
-    renderStructuredFields,
-    readStructuredFields,
+    SECTION_ORDER,
+    SECTION_TITLES,
     generateCVHtml,
-    photoPolicyMessage,
     readFinalCvText,
-    FIELD_CONFIG
+    isReasonableSection
   };
 })(window);

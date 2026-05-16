@@ -105,6 +105,28 @@
         <div id="format-cards" class="format-grid"></div>
       </article>
 
+      <article id="photo-panel" class="card photo-panel">
+        <div class="card-heading">
+          <div>
+            <h2>Foto profesional</h2>
+            <p id="photo-policy-text" class="hint">La foto se activa solo en formatos compatibles.</p>
+          </div>
+          <div id="photo-preview" class="photo-preview"><span>Sin foto</span></div>
+        </div>
+        <div class="photo-controls">
+          <label class="file-drop compact-drop" for="photo-file">
+            <input id="photo-file" type="file" accept="image/png,image/jpeg,image/webp" />
+            <span>Subir foto PNG/JPG/WEBP</span>
+          </label>
+          <label class="inline-check" for="photo-enabled">
+            <input id="photo-enabled" type="checkbox" />
+            Incluir foto en formatos compatibles
+          </label>
+          <button type="button" id="remove-photo" class="secondary">Eliminar foto</button>
+        </div>
+        <p class="hint">ATS simple, técnico por proyectos y UK/Irlanda no exportan foto aunque exista. Visual/creativo la recomienda; Europass, académico, híbrido, cronológico y ejecutivo la permiten como opción.</p>
+      </article>
+
       <details class="card" open>
         <summary data-i18n="fieldsSummary">Campos detectados y edición manual</summary>
         <p class="hint" data-i18n="fieldsHint">Si una sección aparece como “No detectado”, complétala manualmente. El sistema no copia el CV completo en campos dudosos.</p>

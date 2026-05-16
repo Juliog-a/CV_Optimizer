@@ -107,6 +107,57 @@
     $('#cv-output').innerHTML = window.CVOFormatter.generateCVHtml(state.cv, options);
     const format = window.CVOTemplates.CV_FORMATS.find((item) => item.id === state.selectedFormat);
     $('#format-description').textContent = format ? `${format.name[lang()] || format.name.es} · ${format.short[lang()] || format.short.es}` : '';
+    renderPhotoControls();
+  }
+
+  function currentPhotoPolicy() {
+    return window.CVOTemplates.getFormat(state.selectedFormat).photoPolicy || 'blocked';
+  }
+
+  function renderPhotoControls() {
+    const box = $('#photo-panel');
+    if (!box) return;
+    const policy = currentPhotoPolicy();
+    const hasPhoto = Boolean(state.cv.photo?.dataUrl);
+    const enabled = Boolean(state.cv.photo?.enabled);
+    const selectedName = (window.CVOTemplates.getFormat(state.selectedFormat).name[lang()] || window.CVOTemplates.getFormat(state.selectedFormat).name.es);
+    const policyText = {
+      blocked: `El formato ${selectedName} no usa foto. Si ya subiste una imagen, se conserva pero no se exporta en este formato.`,
+      optional: `El formato ${selectedName} puede incluir foto profesional, pero no es obligatoria.`,
+      recommended: `El formato ${selectedName} funciona mejor con una foto profesional.`
+    }[policy] || '';
+    box.classList.toggle('blocked', policy === 'blocked');
+    $('#photo-policy-text').textContent = policyText;
+    $('#photo-preview').innerHTML = hasPhoto ? `<img src="${state.cv.photo.dataUrl}" alt="Foto del CV">` : '<span>Sin foto</span>';
+    $('#photo-enabled').checked = hasPhoto && enabled && policy !== 'blocked';
+    $('#photo-enabled').disabled = !hasPhoto || policy === 'blocked';
+  }
+
+  async function loadPhoto(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(png|jpe?g|webp)$/i.test(file.type)) {
+      setStatus('Formato de imagen no válido. Usa PNG, JPG o WEBP.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      state.cv.photo = { dataUrl: reader.result, filename: file.name, enabled: currentPhotoPolicy() !== 'blocked' };
+      renderPhotoControls();
+      renderPreview();
+      setStatus('Foto cargada. Solo se aplicará en formatos compatibles.', 'success');
+    };
+    reader.onerror = () => setStatus('No se pudo leer la imagen.', 'error');
+    reader.readAsDataURL(file);
+  }
+
+  function removePhoto() {
+    if (state.cv.photo) delete state.cv.photo;
+    const input = $('#photo-file');
+    if (input) input.value = '';
+    renderPhotoControls();
+    renderPreview();
+    setStatus('Foto eliminada.', 'success');
   }
 
   function renderFormats() {
@@ -114,11 +165,14 @@
     const recommendations = window.CVOAnalyzer.evaluateFormats(state.cv || {}, options, $('#job-description')?.value || '');
     $('#format-cards').innerHTML = recommendations.map((format) => {
       const badgeText = format.rating === 'green' ? 'Recomendado' : format.rating === 'orange' ? 'Posible' : 'Poco recomendable';
+      const policy = format.photoPolicy === 'recommended' ? 'Foto recomendada' : format.photoPolicy === 'optional' ? 'Foto opcional' : 'Sin foto';
       return `<button type="button" class="format-card ${state.selectedFormat === format.id ? 'active' : ''}" data-format="${format.id}">
         <span class="badge ${format.rating}">${badgeText}</span>
         <h3>${format.name[lang()] || format.name.es}</h3>
         <p>${format.short[lang()] || format.short.es}</p>
         <p><strong>${format.reason}</strong></p>
+        <span class="format-meta">${policy}</span>
+        <span class="format-action">Usar este formato</span>
       </button>`;
     }).join('');
   }
@@ -182,6 +236,7 @@
     state.demoIndex += 1;
 
     $('#manual-cv').value = demo.cv;
+    if (state.cv.photo) delete state.cv.photo;
     $('#job-description').value = demo.jd;
     $('#target-role').value = demo.title;
     $('#sector').value = demo.sector;
@@ -271,15 +326,17 @@
   }
 
   function exportPdf() {
+    applyStructuredFields();
     const text = window.CVOFormatter.readFinalCvText($('#cv-output'));
-    if (!text) { setStatus('Genera una vista previa antes de exportar.', 'warning'); return; }
-    window.CVOExporter.exportPDF(text, state.cv.name || 'optimized-cv');
+    if (!text || !Object.keys(state.cv || {}).length) { setStatus('Genera una vista previa antes de exportar.', 'warning'); return; }
+    window.CVOExporter.exportPDF(state.cv, getContextOptions(), state.cv.name || 'optimized-cv');
   }
 
   async function exportDocx() {
+    applyStructuredFields();
     const text = window.CVOFormatter.readFinalCvText($('#cv-output'));
-    if (!text) { setStatus('Genera una vista previa antes de exportar.', 'warning'); return; }
-    await window.CVOExporter.exportDOCX(text, state.cv.name || 'optimized-cv');
+    if (!text || !Object.keys(state.cv || {}).length) { setStatus('Genera una vista previa antes de exportar.', 'warning'); return; }
+    await window.CVOExporter.exportDOCX(state.cv, getContextOptions(), state.cv.name || 'optimized-cv');
   }
 
   function syncSalaryCurrency() {
@@ -361,7 +418,7 @@
     $('#structured-fields').innerHTML = ''; $('#cv-output').innerHTML = ''; $('#ai-prompt-output').value = ''; $('#ai-prompt-output').classList.add('hidden');
     $('#analysis-output').className = 'analysis-output empty'; $('#analysis-output').textContent = 'Carga un CV y una oferta para ver el análisis.';
     $('#salary-output').className = 'salary-output empty'; $('#salary-output').textContent = 'Introduce el contexto y calcula para ver las bandas.';
-    renderFormats(); setStatus('', '');
+    renderFormats(); renderPhotoControls(); setStatus('', '');
   }
 
   function bindEvents() {
@@ -371,6 +428,13 @@
     $('#lang-es').addEventListener('click', () => changeLanguage('es'));
     $('#lang-en').addEventListener('click', () => changeLanguage('en'));
     $('#cv-file').addEventListener('change', loadCvFile);
+    $('#photo-file')?.addEventListener('change', loadPhoto);
+    $('#remove-photo')?.addEventListener('click', removePhoto);
+    $('#photo-enabled')?.addEventListener('change', (event) => {
+      state.cv.photo = state.cv.photo || {};
+      state.cv.photo.enabled = event.target.checked;
+      renderPreview();
+    });
     $('#jd-file').addEventListener('change', loadJdFile);
     $('#parse-cv').addEventListener('click', parseFromCurrentText);
     $('#load-demo').addEventListener('click', loadDemo);
@@ -408,6 +472,7 @@
     fillContextControls();
     fillSalaryControls();
     renderFormats();
+    renderPhotoControls();
     bindEvents();
     window.CVOi18n.setLanguage('es');
     $('#cv-output').innerHTML = '<p class="hint">Carga un CV para generar una vista previa editable.</p>';

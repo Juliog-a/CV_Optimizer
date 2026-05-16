@@ -17,7 +17,8 @@ CareerFit CV Optimizer has three main modules:
    - Parse structured CV fields.
    - Edit fields manually.
    - Choose among 10 CV formats using visual cards.
-   - Export the final CV to PDF or DOCX.
+   - Add an optional professional photo only for formats where it makes sense.
+   - Export the final CV to PDF or DOCX using the selected format.
 
 2. **ATS recommendation**
    - Paste or upload a job description.
@@ -55,6 +56,14 @@ Each card receives a suitability label:
 - **Green**: recommended.
 - **Orange**: possible depending on the case.
 - **Red**: not recommended or high risk.
+
+Each format now renders a genuinely different template, not just a CSS color change. The app changes section order, header layout, section emphasis, skills treatment, project visibility and photo policy depending on the selected format.
+
+Photo policy by format:
+
+- **Blocked**: Simple ATS, Technical Projects and UK/Ireland. These formats ignore photos in preview/export because they are intended for ATS or markets where photos are normally discouraged.
+- **Optional**: Reverse chronological, Hybrid, Academic, Europass, Executive and Functional.
+- **Recommended**: Visual / Creative.
 
 The recommendation engine considers target country, sector, seniority, projects, technical skills, certifications, academic orientation and creative/marketing context.
 
@@ -245,6 +254,17 @@ careerfit-cv-optimizer/
 
 ---
 
+## Template design references
+
+The templates are original implementations inspired by common free/public CV guidance and formats, not copied from proprietary templates. The main references used conceptually were:
+
+- Europass official CV structure for the Europass-style template.
+- Harvard career services resume guidance for concise chronological and achievement-focused layouts.
+- UK public career guidance and university career services for the UK/Ireland no-photo, relevance-first approach.
+- ATS best-practice guidance favouring simple one-column layouts, standard headings and avoiding complex visual elements for automated parsing.
+
+---
+
 ## Known limitations
 
 - PDF parsing is robust for common text-based PDFs, but not perfect for visual CVs, scanned documents or complex multi-column layouts.
@@ -252,7 +272,8 @@ careerfit-cv-optimizer/
 - ATS score is heuristic and should be treated as guidance, not as a real ATS vendor score.
 - Salary ranges are approximate and intentionally conservative.
 - External AI is not required for the app to work.
-- The generated PDF/DOCX is clean and ATS-friendly, but not a full professional desktop publishing engine.
+- The generated PDF/DOCX now follows the selected template family, but browser-side export is still less precise than a native design tool or Word template engine.
+- Photos are embedded only when the selected format permits them and only from a local image selected by the user.
 
 ---
 

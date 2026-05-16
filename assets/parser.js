@@ -4,10 +4,10 @@
   const SECTION_ALIASES = {
     profile: ['perfil profesional', 'resumen profesional', 'resumen', 'sobre mí', 'sobre mi', 'professional summary', 'summary', 'profile', 'about me'],
     experience: ['experiencia profesional', 'experiencia laboral', 'experiencia', 'work experience', 'professional experience', 'employment history', 'experience'],
-    education: ['educación', 'educacion', 'formación académica', 'formacion academica', 'education', 'academic background', 'studies'],
+    education: ['educación y certificaciones', 'educacion y certificaciones', 'educación', 'educacion', 'formación académica', 'formacion academica', 'education and certifications', 'education', 'academic background', 'studies'],
     skills: ['competencias técnicas', 'competencias', 'habilidades', 'skills', 'technical skills', 'core skills', 'herramientas', 'tools'],
     certifications: ['certificaciones', 'certificación', 'certification', 'certifications', 'certificates', 'licencias', 'licenses'],
-    projects: ['proyectos', 'projects', 'portfolio', 'github projects', 'personal projects'],
+    projects: ['proyectos e idiomas', 'proyectos e idiomas', 'projects and languages', 'proyectos', 'projects', 'portfolio', 'github projects', 'personal projects'],
     languages: ['idiomas', 'languages'],
     awards: ['premios', 'reconocimientos', 'awards', 'honors', 'honours', 'achievements'],
     other: ['otros', 'other', 'additional information']
@@ -246,10 +246,12 @@
         return digits.length >= 8 && digits.length <= 15 && !/^20\d{2}/.test(digits);
       }) || '';
     const urlRegex = /(?:https?:\/\/)?(?:www\.)?(?:linkedin\.com|github\.com|gitlab\.com|bitbucket\.org|[a-z0-9][a-z0-9-]*(?:\.[a-z0-9-]+)+)(?:\/[^\s,;·<>()]*)?/gi;
-    const urls = unique(Array.from(cleaned.matchAll(urlRegex)).map((match) => cleanUrl(match[0])));
-    const linkedin = urls.find((url) => /linkedin\.com/i.test(url)) || '';
-    const github = urls.find((url) => /github\.com/i.test(url)) || '';
-    const portfolio = urls.find((url) => !/linkedin\.com|github\.com/i.test(url) && /github\.io|portfolio|vercel|netlify|\.dev|\.io/i.test(url)) || urls.find((url) => !/linkedin\.com|github\.com/i.test(url)) || '';
+    const headerUrls = unique(Array.from(header.matchAll(urlRegex)).map((match) => cleanUrl(match[0])));
+    const allUrls = unique(Array.from(cleaned.matchAll(urlRegex)).map((match) => cleanUrl(match[0])));
+    const urls = headerUrls.length ? headerUrls : allUrls;
+    const linkedin = urls.find((url) => /linkedin\.com/i.test(url)) || allUrls.find((url) => /linkedin\.com/i.test(url)) || '';
+    const github = headerUrls.find((url) => /github\.com/i.test(url)) || '';
+    const portfolio = urls.find((url) => !/linkedin\.com|github\.com/i.test(url) && /github\.io|portfolio|vercel|netlify|\.dev|\.io/i.test(url)) || '';
     return { email, phone: phoneCandidate, linkedin, github, portfolio };
   }
 
@@ -275,6 +277,53 @@
       if (/^[A-Za-zÀ-ÿ'\-\s]{4,80}$/.test(clean) && clean.split(/\s+/).length >= 2) return clean;
     }
     return '';
+  }
+
+
+  function postProcessCombinedSections(sections, confidence) {
+    if (sections.education && !sections.certifications) {
+      const lines = sections.education.split('\n').map((line) => line.trim()).filter(Boolean);
+      const certLines = [];
+      const eduLines = [];
+      lines.forEach((line) => {
+        if (/\b(Microsoft|AWS|Azure|Google|Cisco|CompTIA|ITIL|Scrum|Salesforce|Oracle|ISO\s?27001|SC-\d+|AZ-\d+|CCNA|CISSP|CEH|Security\+|Certified|Certification|Fundamentals)\b/i.test(line)) certLines.push(line);
+        else eduLines.push(line);
+      });
+      if (certLines.length) {
+        sections.education = trimSectionValue(eduLines.join('\n'));
+        sections.certifications = trimSectionValue(certLines.join('\n'));
+        confidence.certifications = 'medium';
+      }
+    }
+
+    const languagePattern = /\b(ingl[eé]s|english|espa[ñn]ol|spanish|franc[eé]s|french|alem[aá]n|german|italiano|italian|portugu[eé]s|portuguese|nativo|native|b1|b2|c1|c2|a1|a2|avanzado|intermedio|fluido)\b/i;
+    if (sections.projects) {
+      const lines = sections.projects.split('\n').map((line) => line.trim()).filter(Boolean);
+      const langLines = lines.filter((line) => languagePattern.test(line));
+      const projectLines = lines.filter((line) => !languagePattern.test(line));
+      if (langLines.length && !sections.languages) {
+        sections.projects = trimSectionValue(projectLines.join('\n'));
+        sections.languages = trimSectionValue(langLines.join('\n'));
+        confidence.languages = 'medium';
+      }
+    }
+
+    if (sections.languages) {
+      const lines = sections.languages.split('\n').map((line) => line.trim()).filter(Boolean);
+      const langLines = [];
+      const projectLines = [];
+      lines.forEach((line) => {
+        if (languagePattern.test(line) && !/github\.com|proyecto|project|plataforma|django|react|worker|virustotal|hids|dfir|mitre|repositorio/i.test(line)) langLines.push(line);
+        else if (/github\.com|proyecto|project|plataforma|django|react|worker|virustotal|hids|dfir|mitre|repositorio|portfolio/i.test(line)) projectLines.push(line);
+        else langLines.push(line);
+      });
+      if (projectLines.length && (!sections.projects || sections.projects.length < 12)) {
+        sections.projects = trimSectionValue([sections.projects, projectLines.join('\n')].filter(Boolean).join('\n'));
+        confidence.projects = 'medium';
+        sections.languages = trimSectionValue(langLines.join('\n'));
+        confidence.languages = sections.languages ? 'medium' : 'missing';
+      }
+    }
   }
 
   function inferLimitedSections(cleaned, sections, confidence) {
@@ -323,7 +372,9 @@
     const cleaned = cleanText(text);
     const contact = extractContact(cleaned);
     const { sections, confidence } = splitSections(cleaned);
+    postProcessCombinedSections(sections, confidence);
     inferLimitedSections(cleaned, sections, confidence);
+    postProcessCombinedSections(sections, confidence);
 
     const cv = {
       name: detectName(cleaned, contact),

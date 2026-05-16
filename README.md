@@ -1,4 +1,4 @@
-# CV/LinkedIn Cybersecurity Optimizer
+# CV & LinkedIn Career Optimizer
 
 Static web app to parse a CV, compare it with a job description, calculate an ATS-oriented compatibility score, recommend a CV format, improve weak bullets, generate LinkedIn suggestions, estimate a negotiation-oriented salary range and export an editable final CV to PDF or DOCX.
 
@@ -266,7 +266,7 @@ Each example includes both a CV and a job description.
 
 Take screenshots of:
 
-1. Homepage with dark UI and language switch.
+1. Homepage with the light professional UI and language switch.
 2. CV parser with structured editable fields.
 3. ATS score and keyword analysis.
 4. Format recommendation explanation.
@@ -281,12 +281,12 @@ Take screenshots of:
 
 This project demonstrates:
 
-- document parsing in the browser;
+- robust browser-side parsing for flattened PDF/DOCX/TXT CV text;
 - ATS-oriented analysis;
 - role-based keyword modeling;
 - CV generation and document export;
 - UX for employability and recruitment tooling;
-- cybersecurity-specific positioning;
+- cybersecurity-specific positioning while remaining usable for general professional profiles;
 - generalization to non-cybersecurity profiles;
 - optional AI integration design;
 - salary estimation UX with conservative/context/recommended bands;
@@ -299,11 +299,11 @@ This project demonstrates:
 
 ### English
 
-**CV/LinkedIn Cybersecurity Optimizer** — Created a static AI-assisted web app that parses resumes, compares them against job descriptions, calculates ATS compatibility, recommends CV formats, estimates salary negotiation ranges and exports optimized CVs to PDF/DOCX. Built with HTML, CSS, vanilla JavaScript, pdf.js, mammoth.js, jsPDF and docx.js.
+**CV & LinkedIn Career Optimizer** — Created a static AI-assisted web app that parses resumes, compares them against job descriptions, calculates ATS compatibility, recommends CV formats, estimates salary negotiation ranges and exports optimized CVs to PDF/DOCX. Built with HTML, CSS, vanilla JavaScript, pdf.js, mammoth.js, jsPDF and docx.js.
 
 ### Spanish
 
-**CV/LinkedIn Cybersecurity Optimizer** — Desarrollo de una aplicación web estática asistida por IA que interpreta CVs, los compara con ofertas de empleo, calcula compatibilidad ATS, recomienda formatos de CV, estima rangos salariales de negociación y exporta versiones optimizadas en PDF/DOCX. Construida con HTML, CSS, JavaScript vanilla, pdf.js, mammoth.js, jsPDF y docx.js.
+**CV & LinkedIn Career Optimizer** — Desarrollo de una aplicación web estática asistida por IA que interpreta CVs, los compara con ofertas de empleo, calcula compatibilidad ATS, recomienda formatos de CV, estima rangos salariales de negociación y exporta versiones optimizadas en PDF/DOCX. Construida con HTML, CSS, JavaScript vanilla, pdf.js, mammoth.js, jsPDF y docx.js.
 
 ---
 
@@ -332,7 +332,7 @@ This project demonstrates:
 - Add drag-and-drop file upload.
 - Add template preview thumbnails.
 - Add local browser storage for user drafts, with explicit opt-in.
-- Add unit tests for parser/analyzer functions.
+- Add unit tests for parser/analyzer functions and more CV layout edge cases.
 - Add accessibility audit and keyboard navigation improvements.
 - Add better DOCX visual styling with margins, headings and section spacing.
 

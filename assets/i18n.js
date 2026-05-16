@@ -3,8 +3,8 @@
 
   const dictionary = {
     es: {
-      appTitle: 'CV/LinkedIn Cybersecurity Optimizer',
-      appSubtitle: 'Analiza tu CV, compara una oferta, mejora bullets y exporta un CV profesional en PDF o DOCX.',
+      appTitle: 'CV & LinkedIn Career Optimizer',
+      appSubtitle: 'Analiza tu CV, compara una oferta, estima rango salarial y exporta un CV profesional en PDF o DOCX.',
       privacyTitle: 'Privacidad',
       privacyText: 'Los archivos se procesan localmente en tu navegador. En GitHub Pages no hay backend. Si activas IA externa con tu propia API key, el texto se enviará al proveedor configurado y la clave no se guarda.',
       step1: '1. CV', step2: '2. Oferta', step3: '3. Rol', step4: '4. Análisis', step5: '5. Formato', step6: '6. Edición', step7: '7. Exportar', step8: '8. Sueldo',
@@ -56,8 +56,8 @@
       externalMode: 'IA externa opcional'
     },
     en: {
-      appTitle: 'CV/LinkedIn Cybersecurity Optimizer',
-      appSubtitle: 'Analyze your CV, compare a job description, improve bullets and export a professional PDF or DOCX CV.',
+      appTitle: 'CV & LinkedIn Career Optimizer',
+      appSubtitle: 'Analyze your CV, compare a job description, estimate salary range and export a professional PDF or DOCX CV.',
       privacyTitle: 'Privacy',
       privacyText: 'Files are processed locally in your browser. GitHub Pages has no backend. If you enable external AI with your own API key, the text is sent to the configured provider and the key is not stored.',
       step1: '1. CV', step2: '2. Job', step3: '3. Role', step4: '4. Analysis', step5: '5. Format', step6: '6. Edit', step7: '7. Export', step8: '8. Salary',
